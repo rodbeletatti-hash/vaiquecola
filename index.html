@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#111827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Copa 2026">
+  <title>Copa 2026 — Álbum de Figurinhas</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       Tela de Auth
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div id="screen-auth" class="screen active">
+    <div class="auth-box">
+      <div class="auth-logo">⚽</div>
+      <h1 class="auth-title">Copa 2026</h1>
+      <p class="auth-subtitle">Álbum de Figurinhas</p>
+      <form id="form-auth">
+        <input
+          id="input-email"
+          type="email"
+          placeholder="seu@email.com"
+          required
+          autocomplete="email"
+          inputmode="email"
+        >
+        <button type="submit" id="btn-send-link" class="btn-primary full">
+          Entrar com magic link
+        </button>
+      </form>
+      <p id="auth-msg" class="auth-msg"></p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       Tela Home — Lista de Álbuns
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div id="screen-home" class="screen">
+    <header class="app-header">
+      <span class="header-title">⚽ Meus Álbuns</span>
+      <button id="btn-logout" class="btn-text">Sair</button>
+    </header>
+    <div id="albums-list" class="albums-list"></div>
+    <button id="btn-new-album" class="fab" title="Novo álbum">+</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       Tela do Álbum
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div id="screen-album" class="screen">
+
+    <header class="app-header">
+      <button id="btn-back" class="btn-icon" title="Voltar">←</button>
+      <span id="album-title" class="header-title"></span>
+      <button id="btn-album-menu" class="btn-icon" title="Opções">⋯</button>
+    </header>
+
+    <!-- Barra de progresso -->
+    <div class="progress-wrap">
+      <div class="progress-track">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+      <span id="progress-label" class="progress-label">0 / 0</span>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters-row">
+      <button class="filter active" data-filter="all">Todas</button>
+      <button class="filter" data-filter="owned">Tenho</button>
+      <button class="filter" data-filter="missing">Faltando</button>
+    </div>
+
+    <!-- Grade de figurinhas -->
+    <div id="stickers-container" class="stickers-container"></div>
+
+    <!-- Barra inferior de ação rápida -->
+    <div class="bottom-bar">
+      <button id="btn-undo" class="btn-icon" title="Desfazer (Ctrl+Z)">↩</button>
+      <input
+        id="quick-input"
+        type="text"
+        placeholder="Ex: BRA5, ARG12…"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="characters"
+        spellcheck="false"
+        inputmode="text"
+      >
+      <button id="btn-camera" class="btn-icon" title="Câmera">📷</button>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       Tela de Câmera
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div id="screen-camera" class="screen">
+    <div class="camera-wrap">
+
+      <video id="cam-video" autoplay playsinline muted></video>
+
+      <!-- Overlay com guia de enquadramento -->
+      <div class="cam-overlay">
+        <div class="cam-frame"></div>
+      </div>
+
+      <!-- Resultado do OCR -->
+      <div id="cam-result" class="cam-result hidden">
+        <div id="cam-result-badge" class="cam-result-badge"></div>
+        <div id="cam-result-actions" class="cam-result-actions">
+          <button id="btn-cam-confirm" class="btn-confirm">Confirmar</button>
+          <button id="btn-cam-skip"    class="btn-skip">Pular</button>
+        </div>
+      </div>
+
+      <!-- Status e controles -->
+      <div class="cam-bottom">
+        <p id="cam-status" class="cam-status">Aponte para o código da figurinha</p>
+        <div class="cam-controls">
+          <button id="btn-cam-back"    class="btn-cam-secondary">← Voltar</button>
+          <div class="cam-mode-toggle">
+            <button id="btn-mode-verify" class="cam-mode-btn active">Verificar</button>
+            <button id="btn-mode-mark"   class="cam-mode-btn">Marcar</button>
+          </div>
+          <button id="btn-cam-capture" class="btn-cam-capture">Ler agora</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       Modal
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div id="modal-bg" class="modal-bg hidden">
+    <div id="modal-box" class="modal-box">
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Toast de feedback -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Spinner global -->
+  <div id="loading" class="loading hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- ── Scripts ──────────────────────────────────────────────────────────── -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/catalog.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
