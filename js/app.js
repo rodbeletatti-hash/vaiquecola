@@ -735,10 +735,14 @@ async function init() {
 
   // Service Worker para PWA / offline
   if ('serviceWorker' in navigator) {
-    const reg = await navigator.serviceWorker.register('/vaiquecola/sw.js').catch(() => null);
+    // Listener antes do register para não perder o evento no iOS
+    navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+
+    const reg = await navigator.serviceWorker.register('/vaiquecola/sw.js', {
+      updateViaCache: 'none', // iOS: nunca servir sw.js do cache HTTP
+    }).catch(() => null);
+
     if (reg) {
-      // Recarrega automaticamente quando o novo SW assumir o controle
-      navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
       // Força checagem de update a cada abertura do app
       reg.update().catch(() => null);
     }

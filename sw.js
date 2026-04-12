@@ -1,5 +1,5 @@
 // ─── Service Worker — Copa 2026 ───────────────────────────────────────────────
-const CACHE = 'copa2026-v18';
+const CACHE = 'copa2026-v19';
 
 const BASE = '/vaiquecola';
 
