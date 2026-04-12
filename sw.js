@@ -1,5 +1,5 @@
 // ─── Service Worker — Copa 2026 ───────────────────────────────────────────────
-const CACHE = 'copa2026-v12';
+const CACHE = 'copa2026-v13';
 
 const BASE = '/vaiquecola';
 
@@ -16,11 +16,16 @@ const STATIC = [
   `${BASE}/js/app.js`,
 ];
 
-// Instalação: pré-cacheia assets estáticos
+// Instalação: pré-cacheia assets estáticos (não pula espera — aguarda confirmação do usuário)
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(STATIC)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(c => c.addAll(STATIC))
   );
+});
+
+// Mensagem do app para ativar imediatamente
+self.addEventListener('message', (e) => {
+  if (e.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
 // Ativação: remove caches antigos

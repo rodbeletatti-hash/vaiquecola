@@ -645,8 +645,28 @@ async function init() {
 
   // Service Worker para PWA / offline
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    const reg = await navigator.serviceWorker.register('/vaiquecola/sw.js').catch(() => null);
+    if (reg) {
+      // Detecta nova versão disponível
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        newSW.addEventListener('statechange', () => {
+          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateBanner(newSW);
+          }
+        });
+      });
+    }
   }
+}
+
+function showUpdateBanner(newSW) {
+  const banner = document.getElementById('update-banner');
+  banner.classList.remove('hidden');
+  banner.addEventListener('click', () => {
+    newSW.postMessage('SKIP_WAITING');
+    navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);
