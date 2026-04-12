@@ -84,11 +84,11 @@ const camera = (() => {
     const vh = videoEl.videoHeight;
     if (!vw || !vh) return false;
 
-    // Faixa horizontal central onde costuma ficar o código (80% × 28%)
+    // Terço superior da área de foco — onde fica o código na Panini (ex: "POR 20")
     const sx = Math.round(vw * 0.10);
-    const sy = Math.round(vh * 0.36);
+    const sy = Math.round(vh * 0.28);
     const sw = Math.round(vw * 0.80);
-    const sh = Math.round(vh * 0.28);
+    const sh = Math.round(vh * 0.20);
 
     // Escala 3× para melhor precisão
     targetCanvas.width  = sw * 3;
@@ -137,8 +137,9 @@ const camera = (() => {
   }
 
   // Extrai o primeiro código válido do texto OCR
+  // Aceita com ou sem espaço: "POR20" ou "POR 20"
   function extractCode(text) {
-    const pattern = /([A-Z]{2,4})(\d{1,2})/g;
+    const pattern = /([A-Z]{2,4})\s?(\d{1,2})/g;
     let match;
     while ((match = pattern.exec(text)) !== null) {
       const code = match[1] + match[2];
