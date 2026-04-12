@@ -208,6 +208,8 @@ function handleRealtimeChange(payload) {
   const tile = document.querySelector(`.sticker[data-code="${code}"]`);
   if (tile) tile.classList.toggle('owned', owned);
   updateProgress();
+  updateSectionProgress(code);
+  updateGroupProgress(code);
 }
 
 // ── Grade de Figurinhas ───────────────────────────────────────────────────────
@@ -220,8 +222,12 @@ function renderStickers() {
 
   const groups = [...new Set(CATALOG.map(s => s.group))];
   for (const group of groups) {
-    const sections = CATALOG.filter(s => s.group === group);
-    let groupHtml  = '';
+    const sections   = CATALOG.filter(s => s.group === group);
+    const groupCodes = sections.flatMap(s => getSectionCodes(s));
+    const groupOwned = groupCodes.filter(c => state.owned.has(c)).length;
+    const groupTotal = groupCodes.length;
+    const groupPct   = groupTotal > 0 ? Math.round(groupOwned / groupTotal * 100) : 0;
+    let groupHtml    = '';
 
     for (const section of sections) {
       const codes    = getSectionCodes(section);
@@ -260,7 +266,18 @@ function renderStickers() {
     }
 
     if (groupHtml) {
-      html += `<div class="group"><h3 class="group-title">${escapeHtml(group)}</h3>${groupHtml}</div>`;
+      html += `
+        <div class="group" data-group="${escapeHtml(group)}">
+          <div class="group-header">
+            <h3 class="group-title">${escapeHtml(group)}</h3>
+            <span class="group-progress ${groupOwned === groupTotal ? 'complete' : ''}"
+                  data-group-progress="${escapeHtml(group)}">
+              ${groupPct}%
+            </span>
+          </div>
+          ${groupHtml}
+        </div>
+      `;
     }
   }
 
@@ -278,6 +295,38 @@ function updateProgress() {
 
   document.getElementById('progress-fill').style.width  = `${pct}%`;
   document.getElementById('progress-label').textContent = `${owned} / ${total} (${pct.toFixed(1)}%)`;
+}
+
+function updateGroupProgress(code) {
+  const match = code.match(/^([A-Z]{2,4})\d+$/);
+  if (!match) return;
+  const section = CATALOG_MAP[match[1]];
+  if (!section) return;
+  const { group }  = section;
+  const groupCodes = CATALOG.filter(s => s.group === group).flatMap(s => getSectionCodes(s));
+  const groupOwned = groupCodes.filter(c => state.owned.has(c)).length;
+  const groupTotal = groupCodes.length;
+  const groupPct   = groupTotal > 0 ? Math.round(groupOwned / groupTotal * 100) : 0;
+  const el = document.querySelector(`[data-group-progress="${group}"]`);
+  if (!el) return;
+  el.textContent = `${groupPct}%`;
+  el.classList.toggle('complete', groupOwned === groupTotal);
+}
+
+function updateSectionProgress(code) {
+  const match = code.match(/^([A-Z]{2,4})\d+$/);
+  if (!match) return;
+  const section = CATALOG_MAP[match[1]];
+  if (!section) return;
+  const codes    = getSectionCodes(section);
+  const ownedCnt = codes.filter(c => state.owned.has(c)).length;
+  // Localiza o elemento da seção pelo primeiro tile visível com o mesmo prefixo
+  const anyTile  = document.querySelector(`.sticker[data-code^="${match[1]}"]`);
+  if (!anyTile) return;
+  const progressEl = anyTile.closest('.section')?.querySelector('.section-progress');
+  if (!progressEl) return;
+  progressEl.textContent = `${ownedCnt}/${codes.length}`;
+  progressEl.classList.toggle('complete', ownedCnt === codes.length);
 }
 
 // ── Filtros ───────────────────────────────────────────────────────────────────
@@ -309,6 +358,8 @@ async function toggleSticker(code) {
     setTimeout(() => tile.classList.remove('flash'), 400);
   }
   updateProgress();
+  updateSectionProgress(code);
+  updateGroupProgress(code);
 
   const ok = await db.setSticker(state.album.id, code, nowOwned);
   if (!ok) {

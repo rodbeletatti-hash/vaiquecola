@@ -242,12 +242,20 @@ a      { color: inherit; }
 }
 
 .group { margin-bottom: 6px; }
+.group-header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 10px 4px 4px;
+}
 .group-title {
   font-size: .72rem; font-weight: 700; letter-spacing: .08em;
   color: var(--text-muted);
   text-transform: uppercase;
-  padding: 10px 4px 4px;
 }
+.group-progress {
+  font-size: .72rem; font-weight: 600;
+  color: var(--text-muted);
+}
+.group-progress.complete { color: var(--primary); }
 
 .section { margin-bottom: 10px; }
 .section-header {
