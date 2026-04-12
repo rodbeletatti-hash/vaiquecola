@@ -1,17 +1,19 @@
 // ─── Service Worker — Copa 2026 ───────────────────────────────────────────────
-const CACHE = 'copa2026-v11';
+const CACHE = 'copa2026-v12';
+
+const BASE = '/vaiquecola';
 
 const STATIC = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/manifest.json',
-  '/js/config.js',
-  '/js/catalog.js',
-  '/js/auth.js',
-  '/js/db.js',
-  '/js/camera.js',
-  '/js/app.js',
+  `${BASE}/`,
+  `${BASE}/index.html`,
+  `${BASE}/style.css`,
+  `${BASE}/manifest.json`,
+  `${BASE}/js/config.js`,
+  `${BASE}/js/catalog.js`,
+  `${BASE}/js/auth.js`,
+  `${BASE}/js/db.js`,
+  `${BASE}/js/camera.js`,
+  `${BASE}/js/app.js`,
 ];
 
 // Instalação: pré-cacheia assets estáticos
