@@ -73,6 +73,13 @@ a      { color: inherit; }
 }
 .btn-text:hover { color: var(--text); }
 
+.app-version {
+  font-size: .7rem;
+  color: var(--text-muted);
+  font-family: monospace;
+  opacity: .6;
+}
+
 .btn-primary {
   background: var(--primary);
   color: #fff;

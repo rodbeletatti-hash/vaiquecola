@@ -1,5 +1,5 @@
 // ─── Service Worker — Copa 2026 ───────────────────────────────────────────────
-const CACHE = 'copa2026-v10';
+const CACHE = 'copa2026-v11';
 
 const STATIC = [
   '/',
