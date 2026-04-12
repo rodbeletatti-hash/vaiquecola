@@ -2,7 +2,7 @@
   "name": "Copa 2026 — Álbum de Figurinhas",
   "short_name": "Copa 2026",
   "description": "Gerencie suas figurinhas da Copa do Mundo FIFA 2026",
-  "start_url": "/vaiquecola/",
+  "start_url": "/vaiquecola/index.html",
   "scope": "/vaiquecola/",
   "display": "standalone",
   "orientation": "portrait",
