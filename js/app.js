@@ -731,26 +731,12 @@ async function init() {
   if ('serviceWorker' in navigator) {
     const reg = await navigator.serviceWorker.register('/vaiquecola/sw.js').catch(() => null);
     if (reg) {
-      // Detecta nova versão disponível
-      reg.addEventListener('updatefound', () => {
-        const newSW = reg.installing;
-        newSW.addEventListener('statechange', () => {
-          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateBanner(newSW);
-          }
-        });
-      });
+      // Recarrega automaticamente quando o novo SW assumir o controle
+      navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+      // Força checagem de update a cada abertura do app
+      reg.update().catch(() => null);
     }
   }
-}
-
-function showUpdateBanner(newSW) {
-  const banner = document.getElementById('update-banner');
-  banner.classList.remove('hidden');
-  banner.addEventListener('click', () => {
-    newSW.postMessage('SKIP_WAITING');
-    navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
-  });
 }
 
 document.addEventListener('DOMContentLoaded', init);
