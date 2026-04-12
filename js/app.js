@@ -49,23 +49,56 @@ function showLoading(show) {
 
 // ── Tela de Auth ──────────────────────────────────────────────────────────────
 
+// ── Auth: passo 1 — enviar código ────────────────────────────────────────────
+
+let _otpEmail = '';
+
 document.getElementById('form-auth').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email  = document.getElementById('input-email').value.trim();
-  const msgEl  = document.getElementById('auth-msg');
-  const btnEl  = document.getElementById('btn-send-link');
+  const email = document.getElementById('input-email').value.trim();
+  const msgEl = document.getElementById('auth-msg');
+  const btnEl = document.getElementById('btn-send-link');
   btnEl.disabled = true;
   msgEl.textContent = '';
   try {
     await auth.signInWithMagicLink(email);
-    msgEl.textContent = 'Link enviado! Verifique seu e-mail.';
-    msgEl.className   = 'auth-msg success';
-  } catch (err) {
-    msgEl.textContent = 'Erro ao enviar link. Tente novamente.';
+    _otpEmail = email;
+    document.getElementById('otp-email-label').textContent = email;
+    document.getElementById('form-auth').classList.add('hidden');
+    document.getElementById('form-otp').classList.remove('hidden');
+    document.getElementById('input-otp').focus();
+    msgEl.textContent = '';
+  } catch {
+    msgEl.textContent = 'Erro ao enviar código. Tente novamente.';
     msgEl.className   = 'auth-msg error';
   } finally {
     btnEl.disabled = false;
   }
+});
+
+// ── Auth: passo 2 — verificar código ─────────────────────────────────────────
+
+document.getElementById('form-otp').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const token = document.getElementById('input-otp').value.trim();
+  const msgEl = document.getElementById('auth-msg');
+  const btnEl = document.getElementById('btn-verify-otp');
+  btnEl.disabled = true;
+  msgEl.textContent = '';
+  try {
+    await auth.verifyOtp(_otpEmail, token);
+    // onAuthStateChange vai redirecionar automaticamente
+  } catch {
+    msgEl.textContent = 'Código inválido ou expirado. Tente novamente.';
+    msgEl.className   = 'auth-msg error';
+    btnEl.disabled = false;
+  }
+});
+
+document.getElementById('btn-back-email').addEventListener('click', () => {
+  document.getElementById('form-otp').classList.add('hidden');
+  document.getElementById('form-auth').classList.remove('hidden');
+  document.getElementById('auth-msg').textContent = '';
 });
 
 // ── Tela Home (Lista de Álbuns) ───────────────────────────────────────────────

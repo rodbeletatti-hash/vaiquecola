@@ -12,13 +12,21 @@ const auth = (() => {
     return session?.user ?? null;
   }
 
-  // Envia magic link para o e-mail informado.
-  // redirectTo garante que o link funciona tanto em localhost quanto em produção.
+  // Envia código OTP de 6 dígitos para o e-mail (sem link de redirecionamento)
   async function signInWithMagicLink(email) {
-    const redirectTo = (window.location.origin + window.location.pathname).trim();
     const { error } = await supabaseClient.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: redirectTo },
+      options: { shouldCreateUser: true },
+    });
+    if (error) throw error;
+  }
+
+  // Verifica o código OTP digitado pelo usuário
+  async function verifyOtp(email, token) {
+    const { error } = await supabaseClient.auth.verifyOtp({
+      email,
+      token,
+      type: 'email',
     });
     if (error) throw error;
   }
@@ -34,5 +42,5 @@ const auth = (() => {
     });
   }
 
-  return { getSession, getUser, signInWithMagicLink, signOut, onAuthStateChange };
+  return { getSession, getUser, signInWithMagicLink, verifyOtp, signOut, onAuthStateChange };
 })();

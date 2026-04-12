@@ -138,6 +138,28 @@ a      { color: inherit; }
 .auth-msg.success { color: var(--primary); }
 .auth-msg.error   { color: var(--danger); }
 
+.auth-step.hidden { display: none; }
+
+.otp-hint { font-size: .85rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+.otp-hint strong { color: var(--text); }
+
+#input-otp {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: .3em;
+  text-align: center;
+  outline: none;
+}
+#input-otp:focus { border-color: var(--primary); }
+
+.btn-text.full { width: 100%; text-align: center; margin-top: 8px; }
+
 /* ─── Home — Álbuns ────────────────────────────────────────────────────────── */
 .albums-list {
   flex: 1; overflow-y: auto;

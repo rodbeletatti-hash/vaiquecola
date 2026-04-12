@@ -21,7 +21,9 @@
       <div class="auth-logo">⚽</div>
       <h1 class="auth-title">Copa 2026</h1>
       <p class="auth-subtitle">Álbum de Figurinhas</p>
-      <form id="form-auth">
+
+      <!-- Passo 1: e-mail -->
+      <form id="form-auth" class="auth-step">
         <input
           id="input-email"
           type="email"
@@ -31,9 +33,30 @@
           inputmode="email"
         >
         <button type="submit" id="btn-send-link" class="btn-primary full">
-          Entrar com magic link
+          Enviar código
         </button>
       </form>
+
+      <!-- Passo 2: código OTP -->
+      <form id="form-otp" class="auth-step hidden">
+        <p class="otp-hint">Digite o código de 6 dígitos enviado para <strong id="otp-email-label"></strong></p>
+        <input
+          id="input-otp"
+          type="text"
+          placeholder="000000"
+          maxlength="6"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          pattern="\d{6}"
+        >
+        <button type="submit" id="btn-verify-otp" class="btn-primary full">
+          Entrar
+        </button>
+        <button type="button" id="btn-back-email" class="btn-text full">
+          ← Usar outro e-mail
+        </button>
+      </form>
+
       <p id="auth-msg" class="auth-msg"></p>
     </div>
   </div>
