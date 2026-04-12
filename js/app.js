@@ -272,8 +272,11 @@ function renderStickers() {
             <h3 class="group-title">${escapeHtml(group)}</h3>
             <span class="group-progress ${groupOwned === groupTotal ? 'complete' : ''}"
                   data-group-progress="${escapeHtml(group)}">
-              ${groupPct}%
+              ${groupOwned}/${groupTotal} &nbsp; ${groupPct}%
             </span>
+          </div>
+          <div class="group-bar">
+            <div class="group-bar-fill" data-group-fill="${escapeHtml(group)}" style="width:${groupPct}%"></div>
           </div>
           ${groupHtml}
         </div>
@@ -308,9 +311,12 @@ function updateGroupProgress(code) {
   const groupTotal = groupCodes.length;
   const groupPct   = groupTotal > 0 ? Math.round(groupOwned / groupTotal * 100) : 0;
   const el = document.querySelector(`[data-group-progress="${group}"]`);
-  if (!el) return;
-  el.textContent = `${groupPct}%`;
-  el.classList.toggle('complete', groupOwned === groupTotal);
+  if (el) {
+    el.innerHTML = `${groupOwned}/${groupTotal} &nbsp; ${groupPct}%`;
+    el.classList.toggle('complete', groupOwned === groupTotal);
+  }
+  const fill = document.querySelector(`[data-group-fill="${group}"]`);
+  if (fill) fill.style.width = `${groupPct}%`;
 }
 
 function updateSectionProgress(code) {

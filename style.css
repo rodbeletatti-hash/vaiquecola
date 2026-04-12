@@ -257,6 +257,20 @@ a      { color: inherit; }
 }
 .group-progress.complete { color: var(--primary); }
 
+.group-bar {
+  height: 4px;
+  background: var(--surface2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0 4px 6px;
+}
+.group-bar-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 2px;
+  transition: width .4s ease;
+}
+
 .section { margin-bottom: 10px; }
 .section-header {
   display: flex; justify-content: space-between; align-items: baseline;
