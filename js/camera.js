@@ -15,7 +15,7 @@ const camera = (() => {
   async function start(videoEl) {
     if (stream) stop();
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 } },
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } },
       audio: false,
     });
     videoEl.srcObject = stream;
