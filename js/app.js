@@ -209,7 +209,7 @@ function handleRealtimeChange(payload) {
   if (tile) tile.classList.toggle('owned', owned);
   updateProgress();
   updateSectionProgress(code);
-  updateGroupProgress(code);
+
 }
 
 // ── Grade de Figurinhas ───────────────────────────────────────────────────────
@@ -222,12 +222,8 @@ function renderStickers() {
 
   const groups = [...new Set(CATALOG.map(s => s.group))];
   for (const group of groups) {
-    const sections   = CATALOG.filter(s => s.group === group);
-    const groupCodes = sections.flatMap(s => getSectionCodes(s));
-    const groupOwned = groupCodes.filter(c => state.owned.has(c)).length;
-    const groupTotal = groupCodes.length;
-    const groupPct   = groupTotal > 0 ? Math.round(groupOwned / groupTotal * 100) : 0;
-    let groupHtml    = '';
+    const sections = CATALOG.filter(s => s.group === group);
+    let groupHtml  = '';
 
     for (const section of sections) {
       const codes    = getSectionCodes(section);
@@ -272,16 +268,7 @@ function renderStickers() {
     if (groupHtml) {
       html += `
         <div class="group" data-group="${escapeHtml(group)}">
-          <div class="group-header">
-            <h3 class="group-title">${escapeHtml(group)}</h3>
-            <span class="group-progress ${groupOwned === groupTotal ? 'complete' : ''}"
-                  data-group-progress="${escapeHtml(group)}">
-              ${groupOwned}/${groupTotal} &nbsp; ${groupPct}%
-            </span>
-          </div>
-          <div class="group-bar">
-            <div class="group-bar-fill" data-group-fill="${escapeHtml(group)}" style="width:${groupPct}%"></div>
-          </div>
+          <h3 class="group-title">${escapeHtml(group)}</h3>
           ${groupHtml}
         </div>
       `;
@@ -304,24 +291,6 @@ function updateProgress() {
   document.getElementById('progress-label').textContent = `${owned} / ${total} (${pct.toFixed(1)}%)`;
 }
 
-function updateGroupProgress(code) {
-  const match = code.match(/^([A-Z]{2,4})\d+$/);
-  if (!match) return;
-  const section = CATALOG_MAP[match[1]];
-  if (!section) return;
-  const { group }  = section;
-  const groupCodes = CATALOG.filter(s => s.group === group).flatMap(s => getSectionCodes(s));
-  const groupOwned = groupCodes.filter(c => state.owned.has(c)).length;
-  const groupTotal = groupCodes.length;
-  const groupPct   = groupTotal > 0 ? Math.round(groupOwned / groupTotal * 100) : 0;
-  const el = document.querySelector(`[data-group-progress="${group}"]`);
-  if (el) {
-    el.innerHTML = `${groupOwned}/${groupTotal} &nbsp; ${groupPct}%`;
-    el.classList.toggle('complete', groupOwned === groupTotal);
-  }
-  const fill = document.querySelector(`[data-group-fill="${group}"]`);
-  if (fill) fill.style.width = `${groupPct}%`;
-}
 
 function updateSectionProgress(code) {
   const match = code.match(/^([A-Z]{2,4})\d+$/);
@@ -375,7 +344,7 @@ async function toggleSticker(code) {
   }
   updateProgress();
   updateSectionProgress(code);
-  updateGroupProgress(code);
+
 
   const ok = await db.setSticker(state.album.id, code, nowOwned);
   if (!ok) {
