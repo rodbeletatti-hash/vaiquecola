@@ -244,7 +244,7 @@ function renderStickers() {
       groupHtml += `
         <div class="section">
           <div class="section-header">
-            <span class="section-name">${escapeHtml(section.name)}</span>
+            <span class="section-name">${section.flag ? section.flag + ' ' : ''}${escapeHtml(section.name)}</span>
             <span class="section-progress ${ownedCnt === codes.length ? 'complete' : ''}">
               ${ownedCnt}/${codes.length} &nbsp; ${sectionPct}%
             </span>
