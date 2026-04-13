@@ -244,13 +244,17 @@ function renderStickers() {
       if (visible.length === 0) continue;
 
       const ownedCnt = codes.filter(c => state.owned.has(c)).length;
+      const sectionPct = codes.length > 0 ? Math.round(ownedCnt / codes.length * 100) : 0;
       groupHtml += `
         <div class="section">
           <div class="section-header">
             <span class="section-name">${escapeHtml(section.name)}</span>
             <span class="section-progress ${ownedCnt === codes.length ? 'complete' : ''}">
-              ${ownedCnt}/${codes.length}
+              ${ownedCnt}/${codes.length} &nbsp; ${sectionPct}%
             </span>
+          </div>
+          <div class="section-bar">
+            <div class="section-bar-fill" data-section-fill="${escapeHtml(section.id)}" style="width:${sectionPct}%"></div>
           </div>
           <div class="sticker-grid">
             ${visible.map(code => `
@@ -329,10 +333,16 @@ function updateSectionProgress(code) {
   // Localiza o elemento da seção pelo primeiro tile visível com o mesmo prefixo
   const anyTile  = document.querySelector(`.sticker[data-code^="${match[1]}"]`);
   if (!anyTile) return;
-  const progressEl = anyTile.closest('.section')?.querySelector('.section-progress');
-  if (!progressEl) return;
-  progressEl.textContent = `${ownedCnt}/${codes.length}`;
-  progressEl.classList.toggle('complete', ownedCnt === codes.length);
+  const sectionEl  = anyTile.closest('.section');
+  if (!sectionEl) return;
+  const sectionPct = codes.length > 0 ? Math.round(ownedCnt / codes.length * 100) : 0;
+  const progressEl = sectionEl.querySelector('.section-progress');
+  if (progressEl) {
+    progressEl.innerHTML = `${ownedCnt}/${codes.length} &nbsp; ${sectionPct}%`;
+    progressEl.classList.toggle('complete', ownedCnt === codes.length);
+  }
+  const fillEl = sectionEl.querySelector('.section-bar-fill');
+  if (fillEl) fillEl.style.width = `${sectionPct}%`;
 }
 
 // ── Filtros ───────────────────────────────────────────────────────────────────

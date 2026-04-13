@@ -280,6 +280,20 @@ a      { color: inherit; }
 .section-progress { font-size: .78rem; color: var(--text-muted); }
 .section-progress.complete { color: var(--primary); font-weight: 700; }
 
+.section-bar {
+  height: 3px;
+  background: var(--surface2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0 4px 6px;
+}
+.section-bar-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 2px;
+  transition: width .4s ease;
+}
+
 .sticker-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
