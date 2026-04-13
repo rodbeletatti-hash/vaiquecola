@@ -393,7 +393,10 @@ quickInput.addEventListener('input', () => {
 
   state.search = raw;
   renderStickers();
-  document.getElementById('stickers-container').scrollTop = 0;
+  // Rola até o primeiro grid de figurinhas, pulando títulos de grupo/seção
+  const firstGrid = document.querySelector('#stickers-container .sticker-grid');
+  if (firstGrid) firstGrid.scrollIntoView({ behavior: 'instant', block: 'start' });
+  else document.getElementById('stickers-container').scrollTop = 0;
 
   // Cor do input: verde = tenho, vermelho = não tenho, neutro = código parcial
   if (isValidStickerCode(raw)) {
