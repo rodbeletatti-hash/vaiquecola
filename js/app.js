@@ -393,11 +393,11 @@ quickInput.addEventListener('input', () => {
 
   state.search = raw;
   renderStickers();
+  document.getElementById('stickers-container').scrollTop = 0;
 
   // Cor do input: verde = tenho, vermelho = não tenho, neutro = código parcial
   if (isValidStickerCode(raw)) {
     quickInput.className = state.owned.has(raw) ? 'input-has' : 'input-missing';
-    // Rola até a figurinha se ela estiver visível
     const tile = document.querySelector(`.sticker[data-code="${raw}"]`);
     if (tile) tile.scrollIntoView({ behavior: 'smooth', block: 'center' });
   } else {
