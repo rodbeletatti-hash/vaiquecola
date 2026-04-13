@@ -393,16 +393,16 @@ quickInput.addEventListener('input', () => {
 
   state.search = raw;
   renderStickers();
-  // Rola até o primeiro grid de figurinhas, pulando títulos de grupo/seção
-  const firstGrid = document.querySelector('#stickers-container .sticker-grid');
-  if (firstGrid) firstGrid.scrollIntoView({ behavior: 'instant', block: 'start' });
-  else document.getElementById('stickers-container').scrollTop = 0;
+
+  // Calcula scrollTop diretamente — scrollIntoView no iOS usa o layout viewport
+  // (tela toda) e não o visual viewport (área acima do teclado), posicionando errado.
+  const container = document.getElementById('stickers-container');
+  const firstGrid = container.querySelector('.sticker-grid');
+  container.scrollTop = firstGrid ? (firstGrid.offsetTop - container.offsetTop) : 0;
 
   // Cor do input: verde = tenho, vermelho = não tenho, neutro = código parcial
   if (isValidStickerCode(raw)) {
     quickInput.className = state.owned.has(raw) ? 'input-has' : 'input-missing';
-    const tile = document.querySelector(`.sticker[data-code="${raw}"]`);
-    if (tile) tile.scrollIntoView({ behavior: 'smooth', block: 'center' });
   } else {
     quickInput.className = '';
   }
