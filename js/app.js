@@ -689,7 +689,10 @@ async function checkVersion() {
     const { version } = await res.json();
     const current = document.getElementById('app-version')?.textContent?.trim();
     if (current && version && current !== 'dev' && current !== version) {
-      location.reload();
+      // Não recarrega direto — pede ao SW para atualizar o cache primeiro.
+      // O controllerchange abaixo fará o reload depois que o SW ativar.
+      const reg = await navigator.serviceWorker?.getRegistration?.();
+      if (reg) reg.update().catch(() => null);
     }
   } catch { /* offline — ignora */ }
 }
