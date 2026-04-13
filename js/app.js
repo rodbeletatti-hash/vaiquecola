@@ -682,23 +682,7 @@ async function handleInvite(token) {
 
 // ── Inicialização ─────────────────────────────────────────────────────────────
 
-async function checkVersion() {
-  try {
-    const res = await fetch('/vaiquecola/version.json', { cache: 'no-store' });
-    if (!res.ok) return;
-    const { version } = await res.json();
-    const current = document.getElementById('app-version')?.textContent?.trim();
-    if (current && version && current !== 'dev' && current !== version) {
-      // Não recarrega direto — pede ao SW para atualizar o cache primeiro.
-      // O controllerchange abaixo fará o reload depois que o SW ativar.
-      const reg = await navigator.serviceWorker?.getRegistration?.();
-      if (reg) reg.update().catch(() => null);
-    }
-  } catch { /* offline — ignora */ }
-}
-
 async function init() {
-  checkVersion(); // fire-and-forget: recarrega se tiver versão nova
   const params      = new URLSearchParams(window.location.search);
   const inviteToken = params.get('invite');
 
