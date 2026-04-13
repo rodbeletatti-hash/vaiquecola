@@ -1,5 +1,5 @@
 // ─── Service Worker — Copa 2026 ───────────────────────────────────────────────
-const CACHE = 'copa2026-v19';
+const CACHE = 'copa2026-v20';
 
 const BASE = '/vaiquecola';
 
@@ -36,8 +36,9 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = e.request.url;
 
-  // Não intercepta requisições do Supabase nem do CDN (precisam de rede)
+  // Não intercepta requisições do Supabase, CDN ou verificação de versão
   if (url.includes('supabase.co') || url.includes('jsdelivr.net')) return;
+  if (url.includes('version.json')) return;
   if (e.request.method !== 'GET') return;
 
   // Navegações (abrir o PWA) → sempre serve o index.html cacheado

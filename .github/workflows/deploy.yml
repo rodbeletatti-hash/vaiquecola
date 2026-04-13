@@ -38,9 +38,10 @@ jobs:
           JSEOF
           sed -i "s|__SUPABASE_URL__|${{ secrets.SUPABASE_URL }}|g"      js/config.js
           sed -i "s|__SUPABASE_ANON_KEY__|${{ secrets.SUPABASE_ANON_KEY }}|g" js/config.js
-          # Injeta hash do commit no HTML
+          # Injeta hash do commit no HTML e no version.json
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           sed -i "s|>dev<|>${SHORT_SHA}<|g" index.html
+          echo "{\"version\":\"${SHORT_SHA}\"}" > version.json
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
