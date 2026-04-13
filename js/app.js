@@ -172,6 +172,7 @@ async function openAlbum(id, name, isOwner) {
   state.search = '';
   quickInput.value = '';
   quickInput.className = '';
+  document.getElementById('screen-album').classList.remove('searching');
   document.getElementById('album-title').textContent = name;
   document.getElementById('stickers-container').innerHTML = '';
 
@@ -387,6 +388,7 @@ quickInput.addEventListener('input', () => {
   if (!raw) {
     quickInput.className = '';
     state.search = '';
+    document.getElementById('screen-album').classList.remove('searching');
     renderStickers();
     return;
   }
@@ -394,11 +396,20 @@ quickInput.addEventListener('input', () => {
   state.search = raw;
   renderStickers();
 
-  // Calcula scrollTop diretamente — scrollIntoView no iOS usa o layout viewport
-  // (tela toda) e não o visual viewport (área acima do teclado), posicionando errado.
-  const container = document.getElementById('stickers-container');
-  const firstGrid = container.querySelector('.sticker-grid');
-  container.scrollTop = firstGrid ? (firstGrid.offsetTop - container.offsetTop) : 0;
+  // getBoundingClientRect sempre retorna posição visual correta no iOS,
+  // ao contrário de offsetTop que retorna 0 em containers position:fixed+flex.
+  // rAF garante que o iOS terminou de processar o innerHTML antes de scrollar.
+  requestAnimationFrame(() => {
+    const container = document.getElementById('stickers-container');
+    const firstGrid = container.querySelector('.sticker-grid');
+    if (firstGrid) {
+      const offset = firstGrid.getBoundingClientRect().top
+                   - container.getBoundingClientRect().top;
+      container.scrollTop += offset;
+    } else {
+      container.scrollTop = 0;
+    }
+  });
 
   // Cor do input: verde = tenho, vermelho = não tenho, neutro = código parcial
   if (isValidStickerCode(raw)) {
@@ -406,6 +417,14 @@ quickInput.addEventListener('input', () => {
   } else {
     quickInput.className = '';
   }
+});
+
+// Modo compacto quando teclado abre: esconde barra de progresso
+quickInput.addEventListener('focus', () => {
+  document.getElementById('screen-album').classList.add('searching');
+});
+quickInput.addEventListener('blur', () => {
+  if (!state.search) document.getElementById('screen-album').classList.remove('searching');
 });
 
 // Enter ainda marca/desmarca a figurinha

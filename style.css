@@ -195,6 +195,11 @@ a      { color: inherit; }
 }
 .fab:active { transform: scale(.93); }
 
+/* ─── Modo busca: esconde progresso para maximizar área de resultados ────────── */
+#screen-album.searching .progress-wrap {
+  display: none;
+}
+
 /* ─── Progress ─────────────────────────────────────────────────────────────── */
 .progress-wrap {
   display: flex; align-items: center; gap: 10px;
