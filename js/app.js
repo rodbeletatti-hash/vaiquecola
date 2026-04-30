@@ -481,7 +481,7 @@ async function shareAlbum() {
   closeModal();
   showLoading(true);
   try {
-    const token = await db.createInvite(state.album.id);
+    const token = await db.createInvite(state.album.id, state.user.id);
     const url   = `${window.location.origin}${window.location.pathname}?invite=${token}`;
     const waMsg = encodeURIComponent(`Abra o link para ver meu álbum da Copa 2026: ${url}`);
     showModal(`

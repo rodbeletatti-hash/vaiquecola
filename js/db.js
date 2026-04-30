@@ -64,10 +64,10 @@ const db = (() => {
 
   // ── Compartilhamento ──────────────────────────────────────────────────────
 
-  async function createInvite(albumId) {
+  async function createInvite(albumId, userId) {
     const { data, error } = await supabaseClient
       .from('album_invites')
-      .insert({ album_id: albumId })
+      .insert({ album_id: albumId, created_by: userId })
       .select('token')
       .single();
     if (error) throw error;
