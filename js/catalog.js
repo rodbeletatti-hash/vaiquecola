@@ -1,15 +1,16 @@
 // ─── Catálogo de Figurinhas — Copa do Mundo FIFA 2026 ─────────────────────────
 // Baseado no álbum oficial Panini FIFA World Cup 2026™
 // Cada seção: { id, name, count, group }
-// Código de figurinha = id + número (ex: BRA1, BRA2 ... BRA16)
-//
-// ⚠️  Atualize os totais por seção quando o álbum oficial for lançado.
+// Código de figurinha = id + número (ex: BRA1, BRA2 ... BRA20)
+// FWC: sticker OO = FWC1, stickers 1–19 = FWC2–FWC20
+// CC:  figurinhas da Coca-Cola CC1–CC14
 
 const CATALOG = [
   // ── Especiais ──────────────────────────────────────────────────────────────
-  { id: 'FWC', name: 'FIFA World Cup 2026',  count: 10, group: 'Especiais' },
-  { id: 'EST', name: 'Estádios',             count: 20, group: 'Especiais' },
-  { id: 'MAS', name: 'Mascote & Troféu',     count:  5, group: 'Especiais' },
+  { id: 'FWC', name: 'FIFA World Cup 2026', count: 20, group: 'Especiais' },
+
+  // ── Extras (fora das 980 oficiais) ────────────────────────────────────────
+  { id: 'CC',  name: 'Coca-Cola',           count: 14, group: 'Extras' },
 
   // ── CONMEBOL (6) ───────────────────────────────────────────────────────────
   { id: 'BRA', name: 'Brasil',               count: 20, group: 'CONMEBOL', flag: '🇧🇷' },
@@ -17,7 +18,7 @@ const CATALOG = [
   { id: 'COL', name: 'Colômbia',             count: 20, group: 'CONMEBOL', flag: '🇨🇴' },
   { id: 'URU', name: 'Uruguai',              count: 20, group: 'CONMEBOL', flag: '🇺🇾' },
   { id: 'ECU', name: 'Equador',              count: 20, group: 'CONMEBOL', flag: '🇪🇨' },
-  { id: 'VEN', name: 'Venezuela',            count: 20, group: 'CONMEBOL', flag: '🇻🇪' },
+  { id: 'PAR', name: 'Paraguai',             count: 20, group: 'CONMEBOL', flag: '🇵🇾' },
 
   // ── UEFA (16) ──────────────────────────────────────────────────────────────
   { id: 'FRA', name: 'França',               count: 20, group: 'UEFA', flag: '🇫🇷' },
@@ -25,38 +26,39 @@ const CATALOG = [
   { id: 'ENG', name: 'Inglaterra',           count: 20, group: 'UEFA', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
   { id: 'GER', name: 'Alemanha',             count: 20, group: 'UEFA', flag: '🇩🇪' },
   { id: 'POR', name: 'Portugal',             count: 20, group: 'UEFA', flag: '🇵🇹' },
-  { id: 'NED', name: 'Países Baixos',        count: 20, group: 'UEFA', flag: '🇳🇱' },
+  { id: 'NED', name: 'Holanda',              count: 20, group: 'UEFA', flag: '🇳🇱' },
   { id: 'BEL', name: 'Bélgica',             count: 20, group: 'UEFA', flag: '🇧🇪' },
-  { id: 'ITA', name: 'Itália',              count: 20, group: 'UEFA', flag: '🇮🇹' },
   { id: 'SUI', name: 'Suíça',               count: 20, group: 'UEFA', flag: '🇨🇭' },
   { id: 'AUT', name: 'Áustria',             count: 20, group: 'UEFA', flag: '🇦🇹' },
   { id: 'CRO', name: 'Croácia',             count: 20, group: 'UEFA', flag: '🇭🇷' },
-  { id: 'SRB', name: 'Sérvia',              count: 20, group: 'UEFA', flag: '🇷🇸' },
-  { id: 'DEN', name: 'Dinamarca',            count: 20, group: 'UEFA', flag: '🇩🇰' },
-  { id: 'POL', name: 'Polônia',             count: 20, group: 'UEFA', flag: '🇵🇱' },
   { id: 'TUR', name: 'Turquia',             count: 20, group: 'UEFA', flag: '🇹🇷' },
-  { id: 'HUN', name: 'Hungria',             count: 20, group: 'UEFA', flag: '🇭🇺' },
+  { id: 'BIH', name: 'Bósnia',              count: 20, group: 'UEFA', flag: '🇧🇦' },
+  { id: 'CZE', name: 'Rep. Tcheca',         count: 20, group: 'UEFA', flag: '🇨🇿' },
+  { id: 'SCO', name: 'Escócia',             count: 20, group: 'UEFA', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿' },
+  { id: 'SWE', name: 'Suécia',              count: 20, group: 'UEFA', flag: '🇸🇪' },
+  { id: 'NOR', name: 'Noruega',             count: 20, group: 'UEFA', flag: '🇳🇴' },
 
   // ── CONCACAF (6) ───────────────────────────────────────────────────────────
   { id: 'USA', name: 'Estados Unidos',       count: 20, group: 'CONCACAF', flag: '🇺🇸' },
   { id: 'MEX', name: 'México',              count: 20, group: 'CONCACAF', flag: '🇲🇽' },
   { id: 'CAN', name: 'Canadá',              count: 20, group: 'CONCACAF', flag: '🇨🇦' },
   { id: 'PAN', name: 'Panamá',              count: 20, group: 'CONCACAF', flag: '🇵🇦' },
-  { id: 'HON', name: 'Honduras',             count: 20, group: 'CONCACAF', flag: '🇭🇳' },
-  { id: 'JAM', name: 'Jamaica',              count: 20, group: 'CONCACAF', flag: '🇯🇲' },
+  { id: 'CUW', name: 'Curaçao',             count: 20, group: 'CONCACAF', flag: '🇨🇼' },
+  { id: 'HAI', name: 'Haiti',               count: 20, group: 'CONCACAF', flag: '🇭🇹' },
 
-  // ── CAF (9) ────────────────────────────────────────────────────────────────
+  // ── CAF (10) ───────────────────────────────────────────────────────────────
   { id: 'MAR', name: 'Marrocos',             count: 20, group: 'CAF', flag: '🇲🇦' },
   { id: 'SEN', name: 'Senegal',              count: 20, group: 'CAF', flag: '🇸🇳' },
   { id: 'EGY', name: 'Egito',               count: 20, group: 'CAF', flag: '🇪🇬' },
-  { id: 'NGA', name: 'Nigéria',             count: 20, group: 'CAF', flag: '🇳🇬' },
-  { id: 'CMR', name: 'Camarões',             count: 20, group: 'CAF', flag: '🇨🇲' },
   { id: 'RSA', name: 'África do Sul',        count: 20, group: 'CAF', flag: '🇿🇦' },
-  { id: 'MLI', name: 'Mali',                count: 20, group: 'CAF', flag: '🇲🇱' },
   { id: 'TUN', name: 'Tunísia',             count: 20, group: 'CAF', flag: '🇹🇳' },
   { id: 'CIV', name: 'Costa do Marfim',      count: 20, group: 'CAF', flag: '🇨🇮' },
+  { id: 'ALG', name: 'Argélia',             count: 20, group: 'CAF', flag: '🇩🇿' },
+  { id: 'COD', name: 'Congo',               count: 20, group: 'CAF', flag: '🇨🇩' },
+  { id: 'GHA', name: 'Gana',                count: 20, group: 'CAF', flag: '🇬🇭' },
+  { id: 'CPV', name: 'Cabo Verde',           count: 20, group: 'CAF', flag: '🇨🇻' },
 
-  // ── AFC (8) ────────────────────────────────────────────────────────────────
+  // ── AFC (9) ────────────────────────────────────────────────────────────────
   { id: 'JPN', name: 'Japão',               count: 20, group: 'AFC', flag: '🇯🇵' },
   { id: 'KOR', name: 'Coreia do Sul',        count: 20, group: 'AFC', flag: '🇰🇷' },
   { id: 'AUS', name: 'Austrália',            count: 20, group: 'AFC', flag: '🇦🇺' },
@@ -65,13 +67,10 @@ const CATALOG = [
   { id: 'QAT', name: 'Catar',               count: 20, group: 'AFC', flag: '🇶🇦' },
   { id: 'IRQ', name: 'Iraque',              count: 20, group: 'AFC', flag: '🇮🇶' },
   { id: 'UZB', name: 'Uzbequistão',          count: 20, group: 'AFC', flag: '🇺🇿' },
+  { id: 'JOR', name: 'Jordânia',            count: 20, group: 'AFC', flag: '🇯🇴' },
 
   // ── OFC (1) ────────────────────────────────────────────────────────────────
   { id: 'NZL', name: 'Nova Zelândia',        count: 20, group: 'OFC', flag: '🇳🇿' },
-
-  // ── Playoffs Intercontinentais (2) ─────────────────────────────────────────
-  { id: 'IC1', name: 'Playoff Intercont. 1', count: 16, group: 'Playoffs' },
-  { id: 'IC2', name: 'Playoff Intercont. 2', count: 16, group: 'Playoffs' },
 ];
 
 // Mapa rápido: código-prefixo → seção  (ex: 'BRA' → { id, name, count })
@@ -90,7 +89,7 @@ function isValidStickerCode(code) {
   return num >= 1 && num <= section.count;
 }
 
-// Retorna todos os códigos de uma seção (ex: ['BRA1','BRA2',...,'BRA16'])
+// Retorna todos os códigos de uma seção (ex: ['BRA1','BRA2',...,'BRA20'])
 function getSectionCodes(section) {
   return Array.from({ length: section.count }, (_, i) => `${section.id}${i + 1}`);
 }
