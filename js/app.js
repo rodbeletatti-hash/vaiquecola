@@ -734,19 +734,11 @@ async function init() {
     showScreen('screen-home');
   }
 
-  // Service Worker para PWA / offline
+  // Desregistra qualquer service worker antigo
   if ('serviceWorker' in navigator) {
-    // Listener antes do register para não perder o evento no iOS
-    navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
-
-    const reg = await navigator.serviceWorker.register('/vaiquecola/sw.js', {
-      updateViaCache: 'none', // iOS: nunca servir sw.js do cache HTTP
-    }).catch(() => null);
-
-    if (reg) {
-      // Força checagem de update a cada abertura do app
-      reg.update().catch(() => null);
-    }
+    navigator.serviceWorker.getRegistrations()
+      .then(regs => regs.forEach(r => r.unregister()))
+      .catch(() => null);
   }
 }
 
