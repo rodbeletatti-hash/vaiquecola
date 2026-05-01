@@ -303,6 +303,34 @@ a      { color: inherit; }
 .sticker:active { transform: scale(.88); }
 .sticker.flash  { animation: sticker-flash .35s ease; }
 
+/* ─── Modo Leitura / Edição ────────────────────────────────────────────────── */
+/* Por padrão (leitura): figurinhas não são clicáveis */
+#screen-album:not(.edit-mode) .sticker {
+  pointer-events: none;
+  cursor: default;
+}
+#screen-album:not(.edit-mode) .sticker:active { transform: none; }
+
+/* Esconde barra de ação no modo leitura */
+#screen-album:not(.edit-mode) .bottom-bar { display: none; }
+
+/* Botão de alternância de modo */
+.btn-edit-mode {
+  font-size: .78rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1.5px solid var(--primary);
+  color: var(--primary);
+  background: transparent;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+}
+#screen-album.edit-mode .btn-edit-mode {
+  background: var(--primary);
+  color: #fff;
+}
+
 @keyframes sticker-flash {
   0%   { transform: scale(1); }
   40%  { transform: scale(1.18); }

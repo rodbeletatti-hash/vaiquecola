@@ -11,6 +11,7 @@ const state = {
   realtimeCh:     null,
   cameraActive:   false,
   pendingInvite:  null,
+  editMode:       false,
 };
 
 // ── Utilitários de UI ─────────────────────────────────────────────────────────
@@ -167,11 +168,19 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 
 // ── Tela de Álbum ─────────────────────────────────────────────────────────────
 
+function setEditMode(on) {
+  state.editMode = on;
+  const screen = document.getElementById('screen-album');
+  screen.classList.toggle('edit-mode', on);
+  document.getElementById('btn-edit-mode').textContent = on ? 'Concluir' : 'Editar';
+}
+
 async function openAlbum(id, name, isOwner) {
   state.album  = { id, name, is_owner: isOwner };
   state.search = '';
   quickInput.value = '';
   quickInput.className = '';
+  setEditMode(false);
   document.getElementById('screen-album').classList.remove('searching');
   document.getElementById('album-title').textContent = name;
   document.getElementById('stickers-container').innerHTML = '';
@@ -330,6 +339,7 @@ document.querySelectorAll('.filter').forEach(btn => {
 // ── Marcar / Desmarcar Figurinha ─────────────────────────────────────────────
 
 async function toggleSticker(code) {
+  if (!state.editMode) return;
   const wasOwned = state.owned.has(code);
   const nowOwned = !wasOwned;
 
@@ -366,6 +376,7 @@ async function toggleSticker(code) {
 }
 
 async function undo() {
+  if (!state.editMode) return;
   if (state.undoStack.length === 0) { toast('Nada para desfazer', 'info'); return; }
   const { code, wasOwned } = state.undoStack.pop();
   await db.setSticker(state.album.id, code, wasOwned);
@@ -458,6 +469,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+document.getElementById('btn-edit-mode').addEventListener('click', () => setEditMode(!state.editMode));
 document.getElementById('btn-undo').addEventListener('click', undo);
 
 // ── Menu do Álbum (⋯) ─────────────────────────────────────────────────────────
