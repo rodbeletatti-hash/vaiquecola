@@ -303,6 +303,44 @@ a      { color: inherit; }
 .sticker:active { transform: scale(.88); }
 .sticker.flash  { animation: sticker-flash .35s ease; }
 
+/* ─── Modo Troca ───────────────────────────────────────────────────────────── */
+.trade-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: calc(var(--bar-h) + var(--safe-bottom));
+  padding: 8px 12px;
+  padding-bottom: calc(8px + var(--safe-bottom));
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  z-index: 10;
+}
+.trade-bar.hidden { display: none; }
+
+.trade-counter {
+  flex: 1;
+  text-align: center;
+  font-size: .9rem;
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+/* Figurinha marcada na troca: azul */
+.sticker.trade {
+  background: #3b82f6;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* No modo troca: já possuídas ficam esmaecidas e não clicáveis */
+#screen-album.trade-mode .sticker.owned {
+  pointer-events: none;
+  opacity: 0.45;
+}
+/* No modo troca: marcadas na troca não podem ser desmarcadas */
+#screen-album.trade-mode .sticker.trade {
+  pointer-events: none;
+}
+
 /* ─── Modo Leitura / Edição ────────────────────────────────────────────────── */
 /* Por padrão (leitura): figurinhas não são clicáveis */
 #screen-album:not(.edit-mode) .sticker {

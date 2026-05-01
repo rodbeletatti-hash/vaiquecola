@@ -12,6 +12,8 @@ const state = {
   cameraActive:   false,
   pendingInvite:  null,
   editMode:       false,
+  tradeMode:      false,
+  tradePending:   new Set(),
 };
 
 // ── Utilitários de UI ─────────────────────────────────────────────────────────
@@ -175,12 +177,59 @@ function setEditMode(on) {
   document.getElementById('btn-edit-mode').textContent = on ? 'Concluir' : 'Editar';
 }
 
+function updateTradeCounter() {
+  const n = state.tradePending.size;
+  document.getElementById('trade-counter').textContent =
+    `${n} encontrada${n !== 1 ? 's' : ''} para troca`;
+}
+
+function enterTradeMode() {
+  closeModal();
+  setEditMode(false);
+  state.tradeMode    = true;
+  state.tradePending = new Set();
+  document.getElementById('screen-album').classList.add('trade-mode');
+  document.getElementById('trade-bar').classList.remove('hidden');
+  document.getElementById('btn-edit-mode').classList.add('hidden');
+  document.getElementById('btn-album-menu').classList.add('hidden');
+  updateTradeCounter();
+  renderStickers();
+}
+
+function exitTradeMode(save) {
+  if (!state.tradeMode && !save) return;
+  state.tradeMode    = false;
+  state.tradePending = new Set();
+  document.getElementById('screen-album').classList.remove('trade-mode');
+  document.getElementById('trade-bar').classList.add('hidden');
+  document.getElementById('btn-edit-mode').classList.remove('hidden');
+  document.getElementById('btn-album-menu').classList.remove('hidden');
+}
+
+async function saveTradeMode() {
+  if (state.tradePending.size === 0) { exitTradeMode(false); renderStickers(); return; }
+  showLoading(true);
+  try {
+    await Promise.all([...state.tradePending].map(c => db.setSticker(state.album.id, c, true)));
+    state.tradePending.forEach(c => state.owned.add(c));
+    toast(`${state.tradePending.size} figurinha${state.tradePending.size !== 1 ? 's' : ''} salva${state.tradePending.size !== 1 ? 's' : ''}!`, 'success');
+  } catch {
+    toast('Erro ao salvar', 'error');
+  } finally {
+    showLoading(false);
+  }
+  exitTradeMode(true);
+  updateProgress();
+  renderStickers();
+}
+
 async function openAlbum(id, name, isOwner) {
   state.album  = { id, name, is_owner: isOwner };
   state.search = '';
   quickInput.value = '';
   quickInput.className = '';
   setEditMode(false);
+  exitTradeMode(false);
   document.getElementById('screen-album').classList.remove('searching');
   document.getElementById('album-title').textContent = name;
   document.getElementById('stickers-container').innerHTML = '';
@@ -244,12 +293,12 @@ function renderStickers() {
         : codes;
 
       const visible  = filter === 'all'    ? afterSearch
-                     : filter === 'owned'  ? afterSearch.filter(c => state.owned.has(c))
-                     :                       afterSearch.filter(c => !state.owned.has(c));
+                     : filter === 'owned'  ? afterSearch.filter(c => state.owned.has(c) || state.tradePending.has(c))
+                     :                       afterSearch.filter(c => !state.owned.has(c) && !state.tradePending.has(c));
 
       if (visible.length === 0) continue;
 
-      const ownedCnt = codes.filter(c => state.owned.has(c)).length;
+      const ownedCnt = codes.filter(c => state.owned.has(c) || state.tradePending.has(c)).length;
       const sectionPct = codes.length > 0 ? Math.round(ownedCnt / codes.length * 100) : 0;
       groupHtml += `
         <div class="section">
@@ -263,13 +312,11 @@ function renderStickers() {
             <div class="section-bar-fill" data-section-fill="${escapeHtml(section.id)}" style="width:${sectionPct}%"></div>
           </div>
           <div class="sticker-grid">
-            ${visible.map(code => `
-              <button class="sticker ${state.owned.has(code) ? 'owned' : ''}"
-                      data-code="${code}"
-                      onclick="toggleSticker('${code}')">
-                ${code}
-              </button>
-            `).join('')}
+            ${visible.map(code => {
+              const cls = state.owned.has(code) ? 'owned'
+                        : state.tradePending.has(code) ? 'trade' : '';
+              return `<button class="sticker ${cls}" data-code="${code}" onclick="toggleSticker('${code}')">${code}</button>`;
+            }).join('')}
           </div>
         </div>
       `;
@@ -339,6 +386,16 @@ document.querySelectorAll('.filter').forEach(btn => {
 // ── Marcar / Desmarcar Figurinha ─────────────────────────────────────────────
 
 async function toggleSticker(code) {
+  if (state.tradeMode) {
+    if (state.owned.has(code) || state.tradePending.has(code)) return;
+    state.tradePending.add(code);
+    const tile = document.querySelector(`.sticker[data-code="${code}"]`);
+    if (tile) { tile.classList.add('trade', 'flash'); setTimeout(() => tile.classList.remove('flash'), 400); }
+    updateTradeCounter();
+    updateSectionProgress(code);
+    updateProgress();
+    return;
+  }
   if (!state.editMode) return;
   const wasOwned = state.owned.has(code);
   const nowOwned = !wasOwned;
@@ -470,6 +527,8 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.getElementById('btn-edit-mode').addEventListener('click', () => setEditMode(!state.editMode));
+document.getElementById('btn-trade-cancel').addEventListener('click', () => { exitTradeMode(false); renderStickers(); });
+document.getElementById('btn-trade-save').addEventListener('click', saveTradeMode);
 document.getElementById('btn-undo').addEventListener('click', undo);
 
 // ── Menu do Álbum (⋯) ─────────────────────────────────────────────────────────
@@ -479,6 +538,7 @@ document.getElementById('btn-album-menu').addEventListener('click', () => {
   showModal(`
     <h3>${escapeHtml(name)}</h3>
     <div class="menu-list">
+      <button class="menu-item" onclick="enterTradeMode()">Modo troca</button>
       <button class="menu-item" onclick="shareAlbum()">Compartilhar álbum</button>
       ${is_owner ? `
         <button class="menu-item" onclick="renameAlbum()">Renomear</button>
@@ -583,6 +643,7 @@ async function doDeleteAlbum() {
 // ── Navegação de Volta ────────────────────────────────────────────────────────
 
 document.getElementById('btn-back').addEventListener('click', () => {
+  if (state.tradeMode) { exitTradeMode(false); renderStickers(); return; }
   db.unsubscribe(state.realtimeCh);
   state.realtimeCh = null;
   showScreen('screen-home');
