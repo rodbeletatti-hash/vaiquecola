@@ -14,6 +14,7 @@ const state = {
   editMode:       false,
   tradeMode:      false,
   tradePending:   new Set(),
+  hideCompleted:  false,
 };
 
 // ── Utilitários de UI ─────────────────────────────────────────────────────────
@@ -230,6 +231,8 @@ async function openAlbum(id, name, isOwner) {
   quickInput.className = '';
   setEditMode(false);
   exitTradeMode(false);
+  state.hideCompleted = false;
+  document.getElementById('btn-hide-completed').classList.remove('active');
   document.getElementById('screen-album').classList.remove('searching');
   document.getElementById('album-title').textContent = name;
   document.getElementById('stickers-container').innerHTML = '';
@@ -274,9 +277,10 @@ function handleRealtimeChange(payload) {
 // ── Grade de Figurinhas ───────────────────────────────────────────────────────
 
 function renderStickers() {
-  const container = document.getElementById('stickers-container');
-  const filter    = state.filter;
-  const search    = (state.search || '').toUpperCase();
+  const container  = document.getElementById('stickers-container');
+  const filter     = state.filter;
+  const isEmblemas = filter === 'emblemas';
+  const search     = (state.search || '').toUpperCase();
   let html = '';
 
   const groups = [...new Set(CATALOG.map(s => s.group))];
@@ -285,27 +289,34 @@ function renderStickers() {
     let groupHtml  = '';
 
     for (const section of sections) {
-      const codes    = getSectionCodes(section);
+      // Emblemas: apenas seções de países (com flag), mostra só a figurinha 1
+      if (isEmblemas && !section.flag) continue;
 
-      // Aplica filtro de busca primeiro, depois filtro de aba
-      const afterSearch = search
-        ? codes.filter(c => c.startsWith(search))
-        : codes;
+      const allCodes = getSectionCodes(section);
+      const codes    = isEmblemas ? [allCodes[0]] : allCodes;
 
-      const visible  = filter === 'all'    ? afterSearch
-                     : filter === 'owned'  ? afterSearch.filter(c => state.owned.has(c) || state.tradePending.has(c))
-                     :                       afterSearch.filter(c => !state.owned.has(c) && !state.tradePending.has(c));
+      const afterSearch = search ? codes.filter(c => c.startsWith(search)) : codes;
+
+      const visible = isEmblemas
+        ? afterSearch
+        : filter === 'all'   ? afterSearch
+        : filter === 'owned' ? afterSearch.filter(c => state.owned.has(c) || state.tradePending.has(c))
+        :                      afterSearch.filter(c => !state.owned.has(c) && !state.tradePending.has(c));
 
       if (visible.length === 0) continue;
 
-      const ownedCnt = codes.filter(c => state.owned.has(c) || state.tradePending.has(c)).length;
-      const sectionPct = codes.length > 0 ? Math.round(ownedCnt / codes.length * 100) : 0;
+      const ownedCnt = allCodes.filter(c => state.owned.has(c) || state.tradePending.has(c)).length;
+
+      // Ocultar seções 100% completas (não se aplica ao modo emblemas)
+      if (!isEmblemas && state.hideCompleted && ownedCnt === allCodes.length) continue;
+
+      const sectionPct = allCodes.length > 0 ? Math.round(ownedCnt / allCodes.length * 100) : 0;
       groupHtml += `
         <div class="section">
           <div class="section-header">
             <span class="section-name">${section.flag ? section.flag + ' ' : ''}${escapeHtml(section.name)}</span>
-            <span class="section-progress ${ownedCnt === codes.length ? 'complete' : ''}">
-              ${ownedCnt}/${codes.length} &nbsp; ${sectionPct}%
+            <span class="section-progress ${ownedCnt === allCodes.length ? 'complete' : ''}">
+              ${ownedCnt}/${allCodes.length} &nbsp; ${sectionPct}%
             </span>
           </div>
           <div class="section-bar">
@@ -381,6 +392,12 @@ document.querySelectorAll('.filter').forEach(btn => {
     );
     renderStickers();
   });
+});
+
+document.getElementById('btn-hide-completed').addEventListener('click', () => {
+  state.hideCompleted = !state.hideCompleted;
+  document.getElementById('btn-hide-completed').classList.toggle('active', state.hideCompleted);
+  renderStickers();
 });
 
 // ── Marcar / Desmarcar Figurinha ─────────────────────────────────────────────

@@ -240,6 +240,27 @@ a      { color: inherit; }
 .filter.active  { background: var(--primary); color: #fff; }
 .filter:not(.active):hover { background: var(--surface2); color: var(--text); }
 
+.filters-row-2 {
+  padding: 5px 12px 6px;
+  justify-content: flex-start;
+  border-bottom: 1px solid var(--border);
+}
+.filter-toggle {
+  font-size: .75rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1.5px solid var(--border);
+  color: var(--text-muted);
+  background: transparent;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.filter-toggle.active {
+  border-color: var(--warn);
+  color: var(--warn);
+  background: rgba(245,158,11,.12);
+}
+
 /* ─── Grade de Figurinhas ──────────────────────────────────────────────────── */
 .stickers-container {
   flex: 1; overflow-y: auto;
