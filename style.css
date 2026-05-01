@@ -390,6 +390,11 @@ a      { color: inherit; }
   color: #fff;
 }
 
+.btn-trade {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
 @keyframes sticker-flash {
   0%   { transform: scale(1); }
   40%  { transform: scale(1.18); }

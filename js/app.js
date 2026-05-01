@@ -191,6 +191,7 @@ function enterTradeMode() {
   state.tradePending = new Set();
   document.getElementById('screen-album').classList.add('trade-mode');
   document.getElementById('trade-bar').classList.remove('hidden');
+  document.getElementById('btn-trade-mode').classList.add('hidden');
   document.getElementById('btn-edit-mode').classList.add('hidden');
   document.getElementById('btn-album-menu').classList.add('hidden');
   updateTradeCounter();
@@ -203,6 +204,7 @@ function exitTradeMode(save) {
   state.tradePending = new Set();
   document.getElementById('screen-album').classList.remove('trade-mode');
   document.getElementById('trade-bar').classList.add('hidden');
+  document.getElementById('btn-trade-mode').classList.remove('hidden');
   document.getElementById('btn-edit-mode').classList.remove('hidden');
   document.getElementById('btn-album-menu').classList.remove('hidden');
 }
@@ -543,6 +545,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+document.getElementById('btn-trade-mode').addEventListener('click', enterTradeMode);
 document.getElementById('btn-edit-mode').addEventListener('click', () => setEditMode(!state.editMode));
 document.getElementById('btn-trade-cancel').addEventListener('click', () => { exitTradeMode(false); renderStickers(); });
 document.getElementById('btn-trade-save').addEventListener('click', saveTradeMode);
@@ -555,7 +558,6 @@ document.getElementById('btn-album-menu').addEventListener('click', () => {
   showModal(`
     <h3>${escapeHtml(name)}</h3>
     <div class="menu-list">
-      <button class="menu-item" onclick="enterTradeMode()">Modo troca</button>
       <button class="menu-item" onclick="shareAlbum()">Compartilhar álbum</button>
       ${is_owner ? `
         <button class="menu-item" onclick="renameAlbum()">Renomear</button>
