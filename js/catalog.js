@@ -1,13 +1,13 @@
 // ─── Catálogo de Figurinhas — Copa do Mundo FIFA 2026 ─────────────────────────
 // Baseado no álbum oficial Panini FIFA World Cup 2026™
-// Cada seção: { id, name, count, group }
+// Cada seção: { id, name, count, group, hasOO? }
 // Código de figurinha = id + número (ex: BRA1, BRA2 ... BRA20)
-// FWC: sticker OO = FWC1, stickers 1–19 = FWC2–FWC20
+// FWC usa hasOO:true → inclui figurinha "00" + FWC1–FWC19 (20 no total)
 // CC:  figurinhas da Coca-Cola CC1–CC14
 
 const CATALOG = [
   // ── Especiais ──────────────────────────────────────────────────────────────
-  { id: 'FWC', name: 'FIFA World Cup 2026', count: 20, group: 'Especiais' },
+  { id: 'FWC', name: 'FIFA World Cup 2026', count: 19, group: 'Especiais', hasOO: true },
 
   // ── Extras (fora das 980 oficiais) ────────────────────────────────────────
   { id: 'CC',  name: 'Coca-Cola',           count: 14, group: 'Extras' },
@@ -76,11 +76,19 @@ const CATALOG = [
 // Mapa rápido: código-prefixo → seção  (ex: 'BRA' → { id, name, count })
 const CATALOG_MAP = Object.fromEntries(CATALOG.map(s => [s.id, s]));
 
-// Total de figurinhas do álbum
-const CATALOG_TOTAL = CATALOG.reduce((sum, s) => sum + s.count, 0);
+// Total de figurinhas do álbum (seções com hasOO somam +1 pelo "00")
+const CATALOG_TOTAL = CATALOG.reduce((sum, s) => sum + s.count + (s.hasOO ? 1 : 0), 0);
 
-// Valida se um código completo pertence ao catálogo (ex: 'BRA5')
+// Retorna a seção de um código (ex: 'BRA5' → seção BRA, '00' → seção FWC)
+function getSectionForCode(code) {
+  if (code === '00') return CATALOG_MAP['FWC'];
+  const match = code.match(/^([A-Z]{2,4})\d+$/);
+  return match ? CATALOG_MAP[match[1]] : null;
+}
+
+// Valida se um código completo pertence ao catálogo (ex: 'BRA5', '00')
 function isValidStickerCode(code) {
+  if (code === '00') return true;
   const match = code.match(/^([A-Z]{2,4})(\d{1,2})$/);
   if (!match) return false;
   const section = CATALOG_MAP[match[1]];
@@ -89,7 +97,9 @@ function isValidStickerCode(code) {
   return num >= 1 && num <= section.count;
 }
 
-// Retorna todos os códigos de uma seção (ex: ['BRA1','BRA2',...,'BRA20'])
+// Retorna todos os códigos de uma seção (ex: ['00','FWC1',...,'FWC19'] ou ['BRA1',...,'BRA20'])
 function getSectionCodes(section) {
-  return Array.from({ length: section.count }, (_, i) => `${section.id}${i + 1}`);
+  const codes = Array.from({ length: section.count }, (_, i) => `${section.id}${i + 1}`);
+  if (section.hasOO) codes.unshift('00');
+  return codes;
 }

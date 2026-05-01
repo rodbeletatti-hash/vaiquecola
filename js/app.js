@@ -294,14 +294,14 @@ function updateProgress() {
 
 
 function updateSectionProgress(code) {
-  const match = code.match(/^([A-Z]{2,4})\d+$/);
-  if (!match) return;
-  const section = CATALOG_MAP[match[1]];
+  const section = getSectionForCode(code);
   if (!section) return;
   const codes    = getSectionCodes(section);
   const ownedCnt = codes.filter(c => state.owned.has(c)).length;
-  // Localiza o elemento da seção pelo primeiro tile visível com o mesmo prefixo
-  const anyTile  = document.querySelector(`.sticker[data-code^="${match[1]}"]`);
+  // Localiza o elemento da seção: tenta pelo tile exato ou pelo prefixo da seção
+  const anyTile  = document.querySelector(`.sticker[data-code="${code}"]`)?.closest('.section')
+    ? document.querySelector(`.sticker[data-code="${code}"]`)
+    : document.querySelector(`.sticker[data-code^="${section.id}"]`);
   if (!anyTile) return;
   const sectionEl  = anyTile.closest('.section');
   if (!sectionEl) return;
