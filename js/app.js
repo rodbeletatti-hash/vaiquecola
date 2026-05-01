@@ -406,10 +406,16 @@ document.getElementById('btn-hide-completed').addEventListener('click', () => {
 
 async function toggleSticker(code) {
   if (state.tradeMode) {
-    if (state.owned.has(code) || state.tradePending.has(code)) return;
-    state.tradePending.add(code);
+    if (state.owned.has(code)) return;
+    const inTrade = state.tradePending.has(code);
+    if (inTrade) state.tradePending.delete(code);
+    else         state.tradePending.add(code);
     const tile = document.querySelector(`.sticker[data-code="${code}"]`);
-    if (tile) { tile.classList.add('trade', 'flash'); setTimeout(() => tile.classList.remove('flash'), 400); }
+    if (tile) {
+      tile.classList.toggle('trade', !inTrade);
+      tile.classList.add('flash');
+      setTimeout(() => tile.classList.remove('flash'), 400);
+    }
     updateTradeCounter();
     updateSectionProgress(code);
     updateProgress();
