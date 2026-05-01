@@ -14,7 +14,7 @@ const state = {
   editMode:       false,
   tradeMode:      false,
   tradePending:   new Set(),
-  hideCompleted:  false,
+  completedFilter: 'all', // 'all' | 'hide' | 'only'
 };
 
 // ── Utilitários de UI ─────────────────────────────────────────────────────────
@@ -233,8 +233,8 @@ async function openAlbum(id, name, isOwner) {
   quickInput.className = '';
   setEditMode(false);
   exitTradeMode(false);
-  state.hideCompleted = false;
-  document.getElementById('btn-hide-completed').classList.remove('active');
+  state.completedFilter = 'all';
+  applyCompletedFilterBtn();
   document.getElementById('screen-album').classList.remove('searching');
   document.getElementById('album-title').textContent = name;
   document.getElementById('stickers-container').innerHTML = '';
@@ -309,8 +309,11 @@ function renderStickers() {
 
       const ownedCnt = allCodes.filter(c => state.owned.has(c) || state.tradePending.has(c)).length;
 
-      // Ocultar seções 100% completas (não se aplica ao modo emblemas)
-      if (!isEmblemas && state.hideCompleted && ownedCnt === allCodes.length) continue;
+      // Filtro de seções completas (não se aplica ao modo emblemas)
+      if (!isEmblemas) {
+        if (state.completedFilter === 'hide' && ownedCnt === allCodes.length) continue;
+        if (state.completedFilter === 'only' && ownedCnt !== allCodes.length) continue;
+      }
 
       const sectionPct = allCodes.length > 0 ? Math.round(ownedCnt / allCodes.length * 100) : 0;
       groupHtml += `
@@ -396,9 +399,17 @@ document.querySelectorAll('.filter').forEach(btn => {
   });
 });
 
+function applyCompletedFilterBtn() {
+  const btn = document.getElementById('btn-hide-completed');
+  const labels = { all: 'Completas', hide: 'Ocultar completas', only: 'Só completas' };
+  btn.textContent = labels[state.completedFilter];
+  btn.dataset.state = state.completedFilter;
+}
+
 document.getElementById('btn-hide-completed').addEventListener('click', () => {
-  state.hideCompleted = !state.hideCompleted;
-  document.getElementById('btn-hide-completed').classList.toggle('active', state.hideCompleted);
+  const next = { all: 'hide', hide: 'only', only: 'all' };
+  state.completedFilter = next[state.completedFilter];
+  applyCompletedFilterBtn();
   renderStickers();
 });
 

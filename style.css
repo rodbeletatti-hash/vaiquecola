@@ -255,10 +255,15 @@ a      { color: inherit; }
   background: transparent;
   transition: background .15s, color .15s, border-color .15s;
 }
-.filter-toggle.active {
+.filter-toggle[data-state="hide"] {
   border-color: var(--warn);
   color: var(--warn);
   background: rgba(245,158,11,.12);
+}
+.filter-toggle[data-state="only"] {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(16,185,129,.12);
 }
 
 /* ─── Grade de Figurinhas ──────────────────────────────────────────────────── */
