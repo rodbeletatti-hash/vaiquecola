@@ -650,7 +650,7 @@ function exportStickers(mode) {
 
     const progress = isMissingOnly ? '' : ` (${ownedCount}/${codes.length})`;
     rows += `<tr>`;
-    rows += `<td class="team-cell">${flag}&nbsp;${section.name}<span class="progress">${progress}</span></td>`;
+    rows += `<td class="team-cell">${flag}&nbsp;${section.id}<span class="progress">${progress}</span></td>`;
 
     for (let col = 0; col <= maxNum; col++) {
       const code  = colMap[col];
