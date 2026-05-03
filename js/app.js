@@ -630,38 +630,54 @@ function exportStickers(mode) {
     ? `Faltando — ${albumName}`
     : `Álbum completo — ${albumName}`;
 
-  let html = '';
-  let currentGroup = null;
+  // Mapeamento: código → índice de coluna
+  // '00' → coluna 0; 'BRA5' → coluna 5; 'FWC12' → coluna 12
+  const codeToCol = c => c === '00' ? 0 : parseInt(c.match(/(\d+)$/)[1], 10);
 
+  // Colunas: 0 (para o '00' do FWC) + 1 até o maior número de figurinas (20)
+  const maxNum    = Math.max(...CATALOG.map(s => s.count)); // 20
+  const totalCols = maxNum + 1; // colunas 0–20
+
+  let rows = '';
   for (const section of CATALOG) {
     const codes = getSectionCodes(section);
-    const cells = isMissingOnly ? codes.filter(c => !state.owned.has(c)) : codes;
-    if (!cells.length) continue;
+    if (isMissingOnly && codes.every(c => state.owned.has(c))) continue;
 
-    if (section.group !== currentGroup) {
-      if (currentGroup !== null) html += '</div></div>';
-      currentGroup = section.group;
-      html += `<div class="group"><h2>${section.group}</h2><div class="group-body">`;
-    }
-
+    const colMap = Object.fromEntries(codes.map(c => [codeToCol(c), c]));
     const ownedCount = codes.filter(c => state.owned.has(c)).length;
-    const flag = section.flag ? `${section.flag} ` : '';
-    const progress = isMissingOnly ? '' : ` <small>(${ownedCount}/${codes.length})</small>`;
-    html += `<div class="sec"><div class="sec-name">${flag}${section.name}${progress}</div><div class="cells">`;
+    const flag = section.flag ?? '';
 
-    for (const code of cells) {
+    const progress = isMissingOnly ? '' : ` (${ownedCount}/${codes.length})`;
+    rows += `<tr>`;
+    rows += `<td class="team-cell">${flag}&nbsp;${section.name}<span class="progress">${progress}</span></td>`;
+
+    for (let col = 0; col <= maxNum; col++) {
+      const code  = colMap[col];
+      if (!code) { rows += `<td class="cell cell-na"></td>`; continue; }
+
       const owned = state.owned.has(code);
+      const label = col === 0 ? '00' : String(col);
+
       if (isMissingOnly) {
-        html += `<div class="cell"><span class="ccode">${code}</span><span class="mark"></span></div>`;
+        rows += owned
+          ? `<td class="cell cell-skip"></td>`
+          : `<td class="cell cell-need">${label}</td>`;
       } else {
-        html += `<div class="cell${owned ? ' done' : ''}"><span class="ccode">${code}</span><span class="mark">${owned ? 'X' : ''}</span></div>`;
+        rows += owned
+          ? `<td class="cell cell-done">X</td>`
+          : `<td class="cell cell-need">${label}</td>`;
       }
     }
-
-    html += '</div></div>';
+    rows += `</tr>`;
   }
 
-  if (currentGroup !== null) html += '</div></div>';
+  const teamW    = 16;
+  const cellW    = ((100 - teamW) / totalCols).toFixed(2);
+  const colgroup = `<col style="width:${teamW}%">`
+    + Array.from({length: totalCols}, () => `<col style="width:${cellW}%">`).join('');
+
+  const headerCols = Array.from({length: totalCols}, (_, i) =>
+    `<th>${i === 0 ? '00' : i}</th>`).join('');
 
   const page = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -670,39 +686,41 @@ function exportStickers(mode) {
   <title>${title}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Arial,Helvetica,sans-serif;font-size:10px;padding:14px;color:#111;background:#fff;max-width:900px;margin:0 auto}
-    h1{font-size:15px;text-align:center;margin-bottom:4px;font-weight:700}
-    .subtitle{text-align:center;font-size:10px;color:#555;margin-bottom:14px}
-    .print-btn{display:block;margin:0 auto 14px;padding:6px 20px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}
-    @media print{.print-btn{display:none}}
-    .group{margin-bottom:18px}
-    .group>h2{font-size:11px;text-transform:uppercase;letter-spacing:.8px;font-weight:700;border-bottom:2px solid #222;padding-bottom:3px;margin-bottom:8px}
-    .group-body{display:flex;flex-wrap:wrap;gap:10px 14px}
-    .sec{min-width:125px}
-    .sec-name{font-weight:700;font-size:10px;margin-bottom:4px;white-space:nowrap}
-    .sec-name small{font-weight:400;color:#777}
-    .cells{display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
-    .cell{border:1px solid #bbb;border-radius:2px;min-height:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;padding:1px}
-    .cell.done{background:#dcfce7}
-    .ccode{font-size:8px;color:#444;font-weight:600}
-    .mark{font-size:12px;font-weight:700;color:#15803d;line-height:1}
+    body{font-family:Arial,Helvetica,sans-serif;padding:10px;color:#111;background:#fff}
+    h1{font-size:14px;text-align:center;margin-bottom:3px;font-weight:700}
+    .subtitle{text-align:center;font-size:9px;color:#666;margin-bottom:10px}
+    .print-btn{display:block;margin:0 auto 12px;padding:5px 18px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600}
+    @media print{
+      .print-btn{display:none}
+      @page{size:A4 landscape;margin:8mm}
+    }
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
+    th{border:1px solid #999;background:#e5e7eb;font-size:7px;font-weight:700;text-align:center;padding:1px 0;height:15px}
+    th:first-child{text-align:left;padding-left:4px;font-size:8px}
+    .team-cell{border:1px solid #999;padding:2px 4px;font-weight:700;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#f9fafb}
+    .progress{font-weight:400;color:#666;font-size:7px;margin-left:3px}
+    .cell{border:1px solid #ccc;text-align:center;height:17px;font-size:7.5px;font-weight:600;vertical-align:middle}
+    .cell-need{background:#fff;color:#222}
+    .cell-done{background:#dcfce7;color:#15803d;font-weight:900;font-size:9px}
+    .cell-skip{background:#f3f4f6;border-color:#e5e7eb}
+    .cell-na{background:#efefef;border-color:#e5e7eb}
   </style>
 </head>
 <body>
   <button class="print-btn" onclick="window.print()">Imprimir / Salvar PDF</button>
   <h1>${title}</h1>
-  <p class="subtitle">Gerado em ${new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
-  ${html}
+  <p class="subtitle">Gerado em ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+  <table>
+    <colgroup>${colgroup}</colgroup>
+    <thead><tr><th>Time</th>${headerCols}</tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
 </body>
 </html>`;
 
   const win = window.open('', '_blank');
-  if (win) {
-    win.document.write(page);
-    win.document.close();
-  } else {
-    toast('Permita pop-ups para exportar', 'error');
-  }
+  if (win) { win.document.write(page); win.document.close(); }
+  else      { toast('Permita pop-ups para exportar', 'error'); }
 }
 
 async function renameAlbum() {
