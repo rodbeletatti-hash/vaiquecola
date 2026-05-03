@@ -577,6 +577,8 @@ document.getElementById('btn-album-menu').addEventListener('click', () => {
     <h3>${escapeHtml(name)}</h3>
     <div class="menu-list">
       <button class="menu-item" onclick="shareAlbum()">Compartilhar álbum</button>
+      <button class="menu-item" onclick="exportStickers('missing')">Exportar faltantes</button>
+      <button class="menu-item" onclick="exportStickers('all')">Exportar álbum completo</button>
       ${is_owner ? `
         <button class="menu-item" onclick="renameAlbum()">Renomear</button>
         <button class="menu-item danger" onclick="confirmDeleteAlbum()">Excluir álbum</button>
@@ -617,6 +619,90 @@ function copyInviteLink(url) {
     ()  => toast('Link copiado!', 'success'),
     ()  => toast('Não foi possível copiar', 'error')
   );
+}
+
+function exportStickers(mode) {
+  closeModal();
+
+  const isMissingOnly = mode === 'missing';
+  const albumName     = state.album.name;
+  const title         = isMissingOnly
+    ? `Faltando — ${albumName}`
+    : `Álbum completo — ${albumName}`;
+
+  let html = '';
+  let currentGroup = null;
+
+  for (const section of CATALOG) {
+    const codes = getSectionCodes(section);
+    const cells = isMissingOnly ? codes.filter(c => !state.owned.has(c)) : codes;
+    if (!cells.length) continue;
+
+    if (section.group !== currentGroup) {
+      if (currentGroup !== null) html += '</div></div>';
+      currentGroup = section.group;
+      html += `<div class="group"><h2>${section.group}</h2><div class="group-body">`;
+    }
+
+    const ownedCount = codes.filter(c => state.owned.has(c)).length;
+    const flag = section.flag ? `${section.flag} ` : '';
+    const progress = isMissingOnly ? '' : ` <small>(${ownedCount}/${codes.length})</small>`;
+    html += `<div class="sec"><div class="sec-name">${flag}${section.name}${progress}</div><div class="cells">`;
+
+    for (const code of cells) {
+      const owned = state.owned.has(code);
+      if (isMissingOnly) {
+        html += `<div class="cell"><span class="ccode">${code}</span><span class="mark"></span></div>`;
+      } else {
+        html += `<div class="cell${owned ? ' done' : ''}"><span class="ccode">${code}</span><span class="mark">${owned ? 'X' : ''}</span></div>`;
+      }
+    }
+
+    html += '</div></div>';
+  }
+
+  if (currentGroup !== null) html += '</div></div>';
+
+  const page = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${title}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,Helvetica,sans-serif;font-size:10px;padding:14px;color:#111;background:#fff;max-width:900px;margin:0 auto}
+    h1{font-size:15px;text-align:center;margin-bottom:4px;font-weight:700}
+    .subtitle{text-align:center;font-size:10px;color:#555;margin-bottom:14px}
+    .print-btn{display:block;margin:0 auto 14px;padding:6px 20px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}
+    @media print{.print-btn{display:none}}
+    .group{margin-bottom:18px}
+    .group>h2{font-size:11px;text-transform:uppercase;letter-spacing:.8px;font-weight:700;border-bottom:2px solid #222;padding-bottom:3px;margin-bottom:8px}
+    .group-body{display:flex;flex-wrap:wrap;gap:10px 14px}
+    .sec{min-width:125px}
+    .sec-name{font-weight:700;font-size:10px;margin-bottom:4px;white-space:nowrap}
+    .sec-name small{font-weight:400;color:#777}
+    .cells{display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
+    .cell{border:1px solid #bbb;border-radius:2px;min-height:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;padding:1px}
+    .cell.done{background:#dcfce7}
+    .ccode{font-size:8px;color:#444;font-weight:600}
+    .mark{font-size:12px;font-weight:700;color:#15803d;line-height:1}
+  </style>
+</head>
+<body>
+  <button class="print-btn" onclick="window.print()">Imprimir / Salvar PDF</button>
+  <h1>${title}</h1>
+  <p class="subtitle">Gerado em ${new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+  ${html}
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(page);
+    win.document.close();
+  } else {
+    toast('Permita pop-ups para exportar', 'error');
+  }
 }
 
 async function renameAlbum() {
