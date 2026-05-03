@@ -371,8 +371,9 @@ a      { color: inherit; }
 }
 #screen-album:not(.edit-mode) .sticker:active { transform: none; }
 
-/* Esconde barra de ação no modo leitura */
-#screen-album:not(.edit-mode) .bottom-bar { display: none; }
+/* No modo leitura esconde apenas os botões de ação, mantém a busca */
+#screen-album:not(.edit-mode) #btn-undo,
+#screen-album:not(.edit-mode) #btn-camera { display: none; }
 
 /* Botão de alternância de modo */
 .btn-edit-mode {

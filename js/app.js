@@ -176,6 +176,7 @@ function setEditMode(on) {
   const screen = document.getElementById('screen-album');
   screen.classList.toggle('edit-mode', on);
   document.getElementById('btn-edit-mode').textContent = on ? 'Concluir' : 'Editar';
+  document.getElementById('quick-input').placeholder = on ? 'Ex: BRA5, ARG12…' : 'Buscar figurinha…';
 }
 
 function updateTradeCounter() {
