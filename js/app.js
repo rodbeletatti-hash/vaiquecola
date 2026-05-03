@@ -362,7 +362,8 @@ function updateProgress() {
   const pct    = total > 0 ? (owned / total * 100) : 0;
 
   document.getElementById('progress-fill').style.width  = `${pct}%`;
-  document.getElementById('progress-label').textContent = `${owned} / ${total} (${pct.toFixed(1)}%)`;
+  const missing = total - owned;
+  document.getElementById('progress-label').textContent = `${owned} / ${total} (${pct.toFixed(1)}%) — faltam ${missing}`;
 }
 
 
