@@ -127,6 +127,37 @@ const db = (() => {
     return (data ?? []).map(r => r.code);
   }
 
+  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent`;
+  const GEMINI_RETRY_DELAYS = [1000, 2000, 4000];
+
+  async function _callGemini(parts) {
+    let lastErr;
+    for (let attempt = 0; attempt <= GEMINI_RETRY_DELAYS.length; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, GEMINI_RETRY_DELAYS[attempt - 1]));
+
+      const res = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts }] }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '[]';
+        let codes = [];
+        try { codes = JSON.parse(raw); }
+        catch { codes = [...raw.toUpperCase().matchAll(/\b([A-Z]{2,4}\d{1,2})\b/g)].map(m => m[1]); }
+        return codes.map(c => String(c).toUpperCase());
+      }
+
+      const err = await res.json().catch(() => ({}));
+      lastErr = new Error(err.error?.message ?? `HTTP ${res.status}`);
+      const isOverload = res.status === 503 || res.status === 429 ||
+        (err.error?.message ?? '').toLowerCase().includes('overloaded');
+      if (!isOverload || attempt === GEMINI_RETRY_DELAYS.length) throw lastErr;
+    }
+  }
+
   // Chama a API do Gemini Flash para extrair códigos de texto ou imagem
   async function parseStickerCodes(payload) {
     if (!GEMINI_API_KEY) throw new Error('Chave da API não configurada (GEMINI_API_KEY)');
@@ -144,35 +175,24 @@ const db = (() => {
       'Responda APENAS com JSON array em maiúsculas: ["BRA5","ARG12"]. Nenhum outro texto.\n\n' +
       `Texto:\n${t}`;
 
-    const parts = payload.image
-      ? [
-          { inline_data: { mime_type: payload.mediaType ?? 'image/jpeg', data: payload.image } },
-          { text: PROMPT_IMG },
-        ]
-      : [{ text: PROMPT_TXT(payload.text ?? '') }];
-
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts }] }),
-      }
-    );
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message ?? `HTTP ${res.status}`);
+    if (payload.image) {
+      return _callGemini([
+        { inline_data: { mime_type: payload.mediaType ?? 'image/jpeg', data: payload.image } },
+        { text: PROMPT_IMG },
+      ]);
     }
 
-    const data = await res.json();
-    const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '[]';
+    // Para texto: divide em chunks de ~50 linhas e chama em paralelo
+    const CHUNK_LINES = 50;
+    const lines = (payload.text ?? '').split('\n');
+    const chunks = [];
+    for (let i = 0; i < lines.length; i += CHUNK_LINES) {
+      chunks.push(lines.slice(i, i + CHUNK_LINES).join('\n'));
+    }
 
-    let codes = [];
-    try { codes = JSON.parse(raw); }
-    catch { codes = [...raw.toUpperCase().matchAll(/\b([A-Z]{2,4}\d{1,2})\b/g)].map(m => m[1]); }
-
-    return codes.map(c => String(c).toUpperCase());
+    const results = await Promise.all(chunks.map(c => _callGemini([{ text: PROMPT_TXT(c) }])));
+    const merged  = results.flat();
+    return [...new Set(merged)];
   }
 
   return {
