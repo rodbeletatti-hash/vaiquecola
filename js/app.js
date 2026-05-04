@@ -557,7 +557,8 @@ document.addEventListener('keydown', (e) => {
   if (!albumScreen.classList.contains('active')) return;
   if (document.activeElement === quickInput) return;
 
-  if (e.key === '/' || (e.key === ' ' && document.activeElement.tagName !== 'BUTTON')) {
+  const tag = document.activeElement.tagName;
+  if (e.key === '/' || (e.key === ' ' && tag !== 'BUTTON' && tag !== 'INPUT' && tag !== 'TEXTAREA')) {
     e.preventDefault();
     quickInput.focus();
   }
