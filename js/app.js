@@ -18,6 +18,8 @@ const state = {
   tradeMode:      false,
   tradePending:   new Set(),
   completedFilter: 'all', // 'all' | 'hide' | 'only'
+  repeats:        new Map(), // Map<code, count> — figurinhas repetidas globais
+  repeatsSearch:  '',
 };
 
 // ── Utilitários de UI ─────────────────────────────────────────────────────────
@@ -856,36 +858,94 @@ function fileToBase64(file) {
   });
 }
 
+// Parser local: resolve formatos estruturados sem chamar a IA.
+// Suporta:
+//   "BRA: 3(1x), 7(2x), 9(1x)"  →  BRA3, BRA7, BRA9
+//   "BRA5, ARG12, FWC3"          →  direto
+function parseStickersLocally(text) {
+  const upper = text.toUpperCase();
+  const codes = [];
+
+  // Formato "SIGLA: N(Nx), N(Nx), ..." (uma ou mais linhas)
+  const teamLineRe = /^([A-Z]{2,4})\s*:\s*(.+)$/gm;
+  let m;
+  while ((m = teamLineRe.exec(upper)) !== null) {
+    const team    = m[1];
+    const cleaned = m[2].replace(/\(\d+x\)/g, ''); // remove "(1x)", "(2x)" etc.
+    for (const [, n] of cleaned.matchAll(/\b(\d{1,2})\b/g)) {
+      const code = `${team}${n}`;
+      if (isValidStickerCode(code)) codes.push(code);
+    }
+  }
+  if (codes.length) return codes;
+
+  // Fallback: códigos diretos "BRA5 ARG12"
+  for (const [, code] of upper.matchAll(/\b([A-Z]{2,4}\d{1,2})\b/g)) {
+    if (isValidStickerCode(code)) codes.push(code);
+  }
+  return codes;
+}
+
 async function parseAndCompare() {
   const activeTab = document.querySelector('.parse-tab.active')?.dataset.tab ?? 'text';
-  let payload;
 
   if (activeTab === 'text') {
     const text = document.getElementById('parse-text')?.value.trim() ?? '';
     if (!text) { toast('Cole uma lista primeiro', 'error'); return; }
-    payload = { text };
-  } else {
-    const file = document.getElementById('parse-file')?.files[0];
-    if (!file) { toast('Selecione uma foto primeiro', 'error'); return; }
-    const base64 = await fileToBase64(file);
-    payload = { image: base64, mediaType: file.type };
+
+    // Tenta parser local primeiro (sem custo, sem latência)
+    const local = parseStickersLocally(text);
+    if (local.length) {
+      state.compareRepeats = new Set(local);
+      closeModal();
+      showLoading(true);
+      try { await _loadAndShowAlbumPicker(); }
+      finally { showLoading(false); }
+      return;
+    }
+
+    // Texto livre não reconhecido: usa IA
+    closeModal();
+    showLoading(true);
+    try {
+      const raw   = await db.parseStickerCodes({ text });
+      const valid = raw.filter(c => isValidStickerCode(c));
+      if (!valid.length) {
+        showModal(`
+          <h3>Nenhum código encontrado</h3>
+          <p class="share-hint">Não foi possível extrair códigos válidos. Revise o texto e tente novamente.</p>
+          <button class="btn-primary" onclick="openParseModal()">Tentar novamente</button>
+        `);
+        return;
+      }
+      state.compareRepeats = new Set(valid);
+      await _loadAndShowAlbumPicker();
+    } catch (err) {
+      toast(`Erro: ${err.message ?? 'tente novamente'}`, 'error');
+    } finally {
+      showLoading(false);
+    }
+    return;
   }
+
+  // Modo foto: sempre usa IA
+  const file = document.getElementById('parse-file')?.files[0];
+  if (!file) { toast('Selecione uma foto primeiro', 'error'); return; }
+  const base64 = await fileToBase64(file);
 
   closeModal();
   showLoading(true);
   try {
-    const raw   = await db.parseStickerCodes(payload);
+    const raw   = await db.parseStickerCodes({ image: base64, mediaType: file.type });
     const valid = raw.filter(c => isValidStickerCode(c));
-
     if (!valid.length) {
       showModal(`
         <h3>Nenhum código encontrado</h3>
-        <p class="share-hint">A IA não encontrou códigos de figurinhas válidos. Tente uma imagem mais nítida ou revise o texto.</p>
+        <p class="share-hint">A IA não encontrou códigos na imagem. Tente uma foto mais nítida.</p>
         <button class="btn-primary" onclick="openParseModal()">Tentar novamente</button>
       `);
       return;
     }
-
     state.compareRepeats = new Set(valid);
     await _loadAndShowAlbumPicker();
   } catch (err) {
@@ -1244,6 +1304,276 @@ async function init() {
       .then(regs => regs.forEach(r => r.unregister()))
       .catch(() => null);
   }
+}
+
+// ── Tela de Figurinhas Repetidas ──────────────────────────────────────────────
+
+document.getElementById('btn-open-repeats').addEventListener('click', openRepeatsScreen);
+document.getElementById('btn-repeats-back').addEventListener('click', () => showScreen('screen-home'));
+
+document.getElementById('repeats-search').addEventListener('input', (e) => {
+  state.repeatsSearch = e.target.value.trim().toUpperCase();
+  renderRepeats();
+});
+
+document.getElementById('btn-repeats-menu').addEventListener('click', () => {
+  showModal(`
+    <h3>Exportar Repetidas</h3>
+    <div class="menu-list">
+      <button class="menu-item" onclick="closeModal(); copyRepeatsToClipboard()">Copiar para clipboard</button>
+      <button class="menu-item" onclick="closeModal(); exportRepeatsPdf()">Exportar PDF</button>
+      <button class="menu-item danger" onclick="closeModal(); clearAllRepeats()">Limpar tudo</button>
+      <button class="menu-item" onclick="closeModal()">Fechar</button>
+    </div>
+  `);
+});
+
+async function openRepeatsScreen() {
+  state.repeatsSearch = '';
+  document.getElementById('repeats-search').value = '';
+  showScreen('screen-repeats');
+  showLoading(true);
+  try {
+    const rows = await db.getRepeatedStickers(state.user.id);
+    state.repeats = new Map(rows.map(r => [r.code, r.count]));
+    renderRepeats();
+    updateRepeatsTotal();
+  } catch {
+    toast('Erro ao carregar repetidas', 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+function renderRepeats() {
+  const container = document.getElementById('repeats-container');
+  const search    = state.repeatsSearch;
+  let html = '';
+
+  const groups = [...new Set(CATALOG.map(s => s.group))];
+  for (const group of groups) {
+    const sections = CATALOG.filter(s => s.group === group);
+    let groupHtml = '';
+
+    for (const section of sections) {
+      const allCodes = getSectionCodes(section);
+      const codes    = search ? allCodes.filter(c => c.startsWith(search)) : allCodes;
+      if (codes.length === 0) continue;
+
+      const secTotal = allCodes.reduce((sum, c) => sum + (state.repeats.get(c) ?? 0), 0);
+
+      groupHtml += `
+        <div class="section">
+          <div class="section-header">
+            <span class="section-name">${section.flag ? section.flag + ' ' : ''}${escapeHtml(section.name)}</span>
+            ${secTotal > 0 ? `<span class="section-progress">${secTotal} repetida${secTotal !== 1 ? 's' : ''}</span>` : ''}
+          </div>
+          <div class="sticker-grid">
+            ${codes.map(code => _repTileHtml(code)).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    if (groupHtml) {
+      html += `
+        <div class="group" data-group="${escapeHtml(group)}">
+          <h3 class="group-title">${escapeHtml(group)}</h3>
+          ${groupHtml}
+        </div>
+      `;
+    }
+  }
+
+  container.innerHTML = html || '<p class="empty-state">Nenhuma figurinha encontrada.</p>';
+}
+
+function _repTileHtml(code) {
+  const count = state.repeats.get(code) ?? 0;
+  return `
+    <div class="rep-sticker${count > 0 ? ' has-repeats' : ''}" data-code="${code}" onclick="incRepeat('${code}')">
+      <span class="rep-code">${code}</span>
+      ${count > 0 ? `
+        <span class="rep-count">×${count}</span>
+        <button class="rep-dec" onclick="event.stopPropagation();decRepeat('${code}')" aria-label="Diminuir">−</button>
+      ` : ''}
+    </div>
+  `;
+}
+
+function _refreshRepSticker(code) {
+  const tile = document.querySelector(`.rep-sticker[data-code="${code}"]`);
+  if (!tile) return;
+  const count = state.repeats.get(code) ?? 0;
+  tile.classList.toggle('has-repeats', count > 0);
+  tile.innerHTML = `
+    <span class="rep-code">${code}</span>
+    ${count > 0 ? `
+      <span class="rep-count">×${count}</span>
+      <button class="rep-dec" onclick="event.stopPropagation();decRepeat('${code}')" aria-label="Diminuir">−</button>
+    ` : ''}
+  `;
+
+  // Atualiza seção
+  const section = getSectionForCode(code);
+  if (section) {
+    const allCodes  = getSectionCodes(section);
+    const secTotal  = allCodes.reduce((sum, c) => sum + (state.repeats.get(c) ?? 0), 0);
+    const secEl     = tile.closest('.section');
+    const progEl    = secEl?.querySelector('.section-progress');
+    if (secEl) {
+      if (secTotal > 0) {
+        if (progEl) {
+          progEl.textContent = `${secTotal} repetida${secTotal !== 1 ? 's' : ''}`;
+        } else {
+          const hdrEl = secEl.querySelector('.section-header');
+          if (hdrEl) {
+            const sp = document.createElement('span');
+            sp.className = 'section-progress';
+            sp.textContent = `${secTotal} repetida${secTotal !== 1 ? 's' : ''}`;
+            hdrEl.appendChild(sp);
+          }
+        }
+      } else if (progEl) {
+        progEl.remove();
+      }
+    }
+  }
+}
+
+function updateRepeatsTotal() {
+  let total = 0;
+  for (const count of state.repeats.values()) total += count;
+  document.getElementById('repeats-total').textContent =
+    total > 0 ? `${total} repetida${total !== 1 ? 's' : ''}` : '';
+}
+
+async function incRepeat(code) {
+  const next = (state.repeats.get(code) ?? 0) + 1;
+  state.repeats.set(code, next);
+  _refreshRepSticker(code);
+  updateRepeatsTotal();
+  await db.setRepeatedSticker(state.user.id, code, next);
+}
+
+async function decRepeat(code) {
+  const current = state.repeats.get(code) ?? 0;
+  if (current <= 0) return;
+  const next = current - 1;
+  if (next === 0) state.repeats.delete(code);
+  else state.repeats.set(code, next);
+  _refreshRepSticker(code);
+  updateRepeatsTotal();
+  await db.setRepeatedSticker(state.user.id, code, next);
+}
+
+async function clearAllRepeats() {
+  showModal(`
+    <h3>Limpar Repetidas</h3>
+    <p>Tem certeza? Isso apagará todas as figurinhas repetidas cadastradas.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn-danger" onclick="doCleanRepeats()">Limpar tudo</button>
+    </div>
+  `);
+}
+
+async function doCleanRepeats() {
+  closeModal();
+  showLoading(true);
+  try {
+    await Promise.all(
+      [...state.repeats.keys()].map(code => db.setRepeatedSticker(state.user.id, code, 0))
+    );
+    state.repeats.clear();
+    renderRepeats();
+    updateRepeatsTotal();
+    toast('Repetidas apagadas', 'info');
+  } catch {
+    toast('Erro ao limpar', 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+function _getRepeatsGroupedForExport() {
+  const grouped = [];
+  for (const section of CATALOG) {
+    const codes = getSectionCodes(section);
+    const items = [];
+    for (const code of codes) {
+      const count = state.repeats.get(code);
+      if (!count) continue;
+      const num = code === '00' ? '00' : code.slice(section.id.length);
+      items.push({ num, count });
+    }
+    if (items.length) grouped.push({ sec: section, items });
+  }
+  return grouped;
+}
+
+function copyRepeatsToClipboard() {
+  const groups = _getRepeatsGroupedForExport();
+  if (!groups.length) { toast('Nenhuma figurinha repetida cadastrada', 'info'); return; }
+
+  const totalCount = groups.reduce((s, g) => s + g.items.reduce((ss, i) => ss + i.count, 0), 0);
+  const lines = ['Figurinhas Repetidas — Copa 2026'];
+  for (const { sec, items } of groups) {
+    const nums = items.map(({ num, count }) => count > 1 ? `${num}(${count}x)` : num).join(', ');
+    lines.push(`${sec.id}: ${nums}`);
+  }
+  lines.push(`Total: ${totalCount} figurinha${totalCount !== 1 ? 's' : ''} repetida${totalCount !== 1 ? 's' : ''}`);
+
+  navigator.clipboard.writeText(lines.join('\n')).then(
+    () => toast('Copiado para a área de transferência!', 'success'),
+    () => toast('Não foi possível copiar', 'error')
+  );
+}
+
+function exportRepeatsPdf() {
+  const groups = _getRepeatsGroupedForExport();
+  if (!groups.length) { toast('Nenhuma figurinha repetida cadastrada', 'info'); return; }
+
+  const totalCount = groups.reduce((s, g) => s + g.items.reduce((ss, i) => ss + i.count, 0), 0);
+
+  const rows = groups.map(({ sec, items }) => {
+    const nums = items.map(({ num, count }) => count > 1 ? `${num}(×${count})` : num).join(', ');
+    return `<tr><td class="et">${sec.flag ?? ''} ${sec.id}</td><td class="en">${nums}</td></tr>`;
+  }).join('');
+
+  const page = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Figurinhas Repetidas</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,Helvetica,sans-serif;padding:16px;color:#111;max-width:600px;margin:0 auto}
+    h1{font-size:16px;margin-bottom:4px;font-weight:700}
+    .sub{font-size:10px;color:#666;margin-bottom:14px}
+    .print-btn{display:block;margin:0 auto 14px;padding:5px 18px;background:#d97706;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600}
+    @media print{.print-btn{display:none}@page{margin:12mm}}
+    table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid #ccc;padding:5px 8px;font-size:11px;text-align:left}
+    th{background:#fef3c7;font-weight:700}
+    .et{width:90px;font-weight:700;white-space:nowrap}
+    tr:nth-child(even){background:#fffbeb}
+  </style>
+</head>
+<body>
+  <button class="print-btn" onclick="window.print()">Imprimir / Salvar PDF</button>
+  <h1>Figurinhas Repetidas — Copa 2026</h1>
+  <p class="sub">${totalCount} figurinha${totalCount !== 1 ? 's' : ''} repetida${totalCount !== 1 ? 's' : ''} • Gerado em ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+  <table>
+    <thead><tr><th>Time</th><th>Figurinhas (quantidade)</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  if (win) { win.document.write(page); win.document.close(); }
+  else toast('Permita pop-ups para exportar', 'error');
 }
 
 document.addEventListener('DOMContentLoaded', init);

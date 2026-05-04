@@ -121,6 +121,37 @@ const db = (() => {
     if (channel) supabaseClient.removeChannel(channel);
   }
 
+  // ── Figurinhas Repetidas (global por usuário) ─────────────────────────────
+
+  async function getRepeatedStickers(userId) {
+    const { data, error } = await supabaseClient
+      .from('repeated_stickers')
+      .select('code, count')
+      .eq('user_id', userId);
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async function setRepeatedSticker(userId, code, count) {
+    if (count <= 0) {
+      const { error } = await supabaseClient
+        .from('repeated_stickers')
+        .delete()
+        .eq('user_id', userId)
+        .eq('code', code);
+      if (error) { console.error('setRepeatedSticker error', error); return false; }
+    } else {
+      const { error } = await supabaseClient
+        .from('repeated_stickers')
+        .upsert(
+          { user_id: userId, code, count, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id,code' }
+        );
+      if (error) { console.error('setRepeatedSticker error', error); return false; }
+    }
+    return true;
+  }
+
   async function readAlbumForCompare(token) {
     const { data, error } = await supabaseClient.rpc('read_album_for_compare', { p_token: token });
     if (error) throw error;
@@ -200,6 +231,7 @@ const db = (() => {
     createInvite, acceptInvite,
     getStickers, setSticker,
     subscribeToAlbum, unsubscribe,
+    getRepeatedStickers, setRepeatedSticker,
     readAlbumForCompare,
     parseStickerCodes,
   };

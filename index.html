@@ -69,8 +69,42 @@
       <span id="app-version" class="app-version">dev</span>
       <button id="btn-logout" class="btn-text">Sair</button>
     </header>
+    <button id="btn-open-repeats" class="repeats-home-card">
+      <span class="rhc-icon">📦</span>
+      <div class="rhc-info">
+        <span class="rhc-title">Figurinhas Repetidas</span>
+        <span class="rhc-hint">Gerencie e exporte suas repetidas</span>
+      </div>
+      <span class="rhc-arrow">→</span>
+    </button>
+    <h2 class="home-albums-title">Meus Álbuns</h2>
     <div id="albums-list" class="albums-list"></div>
     <button id="btn-new-album" class="fab" title="Novo álbum">+</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       Tela de Figurinhas Repetidas
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div id="screen-repeats" class="screen">
+    <header class="app-header">
+      <button id="btn-repeats-back" class="btn-icon" title="Voltar">←</button>
+      <span class="header-title">Repetidas</span>
+      <span id="repeats-total" class="rep-total"></span>
+      <button id="btn-repeats-menu" class="btn-icon" title="Exportar">⋯</button>
+    </header>
+    <div id="repeats-container" class="stickers-container rep-container"></div>
+    <div class="bottom-bar">
+      <input
+        id="repeats-search"
+        type="text"
+        placeholder="Buscar figurinha…"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="characters"
+        spellcheck="false"
+        inputmode="text"
+      >
+    </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
