@@ -582,6 +582,7 @@ document.getElementById('btn-album-menu').addEventListener('click', () => {
     <div class="menu-list">
       <button class="menu-item" onclick="shareAlbum()">Compartilhar álbum</button>
       <button class="menu-item" onclick="generateCompareLink()">Gerar link de comparação</button>
+      <button class="menu-item" onclick="openParseModal()">Comparar por lista ou foto</button>
       <button class="menu-item" onclick="exportStickers('missing')">Exportar faltantes</button>
       <button class="menu-item" onclick="exportStickers('all')">Exportar álbum completo</button>
       ${is_owner ? `
@@ -652,35 +653,38 @@ async function generateCompareLink() {
   }
 }
 
+async function _loadAndShowAlbumPicker() {
+  const albums = await db.getAlbums(state.user.id);
+  state.compareAlbums = albums;
+
+  if (!albums.length) {
+    showModal(`
+      <h3>Comparar Figurinhas</h3>
+      <p class="share-hint">Você precisa ter um álbum para comparar.<br>Crie um álbum primeiro!</p>
+      <button class="btn-primary" onclick="closeModal()">OK</button>
+    `);
+    return;
+  }
+
+  const total = state.compareRepeats.size;
+  const btns  = albums.map(a =>
+    `<button class="menu-item" onclick="doCompare('${a.id}')">${escapeHtml(a.name)}</button>`
+  ).join('');
+
+  showModal(`
+    <h3>Comparar Figurinhas</h3>
+    <p class="share-hint">${total} figurinha${total !== 1 ? 's' : ''} disponível. Selecione seu álbum para ver quais te faltam:</p>
+    <div class="menu-list">${btns}</div>
+    <button class="btn-text" onclick="closeModal()">Cancelar</button>
+  `);
+}
+
 async function handleCompare(token) {
   showLoading(true);
   try {
     const codes = await db.readAlbumForCompare(token);
     state.compareRepeats = new Set(codes);
-
-    const albums = await db.getAlbums(state.user.id);
-    state.compareAlbums  = albums;
-
-    if (!albums.length) {
-      showModal(`
-        <h3>Comparar Figurinhas</h3>
-        <p class="share-hint">Você precisa ter um álbum para comparar.<br>Crie um álbum primeiro!</p>
-        <button class="btn-primary" onclick="closeModal()">OK</button>
-      `);
-      return;
-    }
-
-    const total = state.compareRepeats.size;
-    const btns  = albums.map(a =>
-      `<button class="menu-item" onclick="doCompare('${a.id}')">${escapeHtml(a.name)}</button>`
-    ).join('');
-
-    showModal(`
-      <h3>Comparar Figurinhas</h3>
-      <p class="share-hint">${total} figurinha${total !== 1 ? 's' : ''} repetida${total !== 1 ? 's' : ''} disponível. Selecione seu álbum para ver quais te faltam:</p>
-      <div class="menu-list">${btns}</div>
-      <button class="btn-text" onclick="closeModal()">Cancelar</button>
-    `);
+    await _loadAndShowAlbumPicker();
   } catch {
     toast('Link de comparação inválido ou expirado', 'error');
   } finally {
@@ -791,6 +795,103 @@ function exportCompareList() {
   const win = window.open('', '_blank');
   if (win) { win.document.write(page); win.document.close(); }
   else      { toast('Permita pop-ups para exportar', 'error'); }
+}
+
+// ── Comparar por lista ou foto (GenAI) ────────────────────────────────────────
+
+function openParseModal() {
+  closeModal();
+  showModal(`
+    <h3>Comparar por Lista ou Foto</h3>
+    <div class="parse-tabs">
+      <button class="parse-tab active" data-tab="text" onclick="switchParseTab(this)">📋 Texto</button>
+      <button class="parse-tab" data-tab="image" onclick="switchParseTab(this)">📷 Foto</button>
+    </div>
+    <div id="parse-panel-text" class="parse-panel">
+      <p class="share-hint">Cole a lista de figurinhas repetidas em qualquer formato. A IA extrai os códigos automaticamente.</p>
+      <textarea id="parse-text" rows="5" placeholder="Ex: BRA5, BRA12, ARG3&#10;ou: BRA: 5, 7, 12 | ARG: 3&#10;ou texto livre..."></textarea>
+    </div>
+    <div id="parse-panel-image" class="parse-panel hidden">
+      <p class="share-hint">Envie uma foto com os códigos das figurinhas repetidas. A IA faz a leitura.</p>
+      <label class="parse-upload-btn">
+        <input type="file" id="parse-file" accept="image/*" onchange="previewParseImage(this)">
+        Toque para selecionar foto
+      </label>
+      <img id="parse-img-preview" class="parse-img-preview hidden" alt="">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" id="btn-parse-run" onclick="parseAndCompare()">Processar com IA</button>
+    </div>
+  `);
+}
+
+function switchParseTab(btn) {
+  document.querySelectorAll('.parse-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.parse-panel').forEach(p => p.classList.add('hidden'));
+  document.getElementById(`parse-panel-${btn.dataset.tab}`).classList.remove('hidden');
+}
+
+function previewParseImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const preview = document.getElementById('parse-img-preview');
+  preview.src = URL.createObjectURL(file);
+  preview.classList.remove('hidden');
+  input.closest('.parse-upload-btn').querySelector('span') ??
+    Object.assign(input.nextSibling ?? {}, {});
+  input.closest('label').childNodes.forEach(n => {
+    if (n.nodeType === 3) n.textContent = file.name;
+  });
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = e => resolve(e.target.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function parseAndCompare() {
+  const activeTab = document.querySelector('.parse-tab.active')?.dataset.tab ?? 'text';
+  let payload;
+
+  if (activeTab === 'text') {
+    const text = document.getElementById('parse-text')?.value.trim() ?? '';
+    if (!text) { toast('Cole uma lista primeiro', 'error'); return; }
+    payload = { text };
+  } else {
+    const file = document.getElementById('parse-file')?.files[0];
+    if (!file) { toast('Selecione uma foto primeiro', 'error'); return; }
+    const base64 = await fileToBase64(file);
+    payload = { image: base64, mediaType: file.type };
+  }
+
+  closeModal();
+  showLoading(true);
+  try {
+    const raw   = await db.parseStickerCodes(payload);
+    const valid = raw.filter(c => isValidStickerCode(c));
+
+    if (!valid.length) {
+      showModal(`
+        <h3>Nenhum código encontrado</h3>
+        <p class="share-hint">A IA não encontrou códigos de figurinhas válidos. Tente uma imagem mais nítida ou revise o texto.</p>
+        <button class="btn-primary" onclick="openParseModal()">Tentar novamente</button>
+      `);
+      return;
+    }
+
+    state.compareRepeats = new Set(valid);
+    await _loadAndShowAlbumPicker();
+  } catch (err) {
+    toast(`Erro: ${err.message ?? 'tente novamente'}`, 'error');
+  } finally {
+    showLoading(false);
+  }
 }
 
 function exportStickers(mode) {

@@ -127,11 +127,20 @@ const db = (() => {
     return (data ?? []).map(r => r.code);
   }
 
+  // Chama a Edge Function parse-stickers para extrair códigos de texto ou imagem via IA
+  async function parseStickerCodes(payload) {
+    const { data, error } = await supabaseClient.functions.invoke('parse-stickers', { body: payload });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return (data?.codes ?? []);
+  }
+
   return {
     getAlbums, createAlbum, renameAlbum, deleteAlbum,
     createInvite, acceptInvite,
     getStickers, setSticker,
     subscribeToAlbum, unsubscribe,
     readAlbumForCompare,
+    parseStickerCodes,
   };
 })();
