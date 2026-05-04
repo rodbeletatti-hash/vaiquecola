@@ -127,12 +127,58 @@ const db = (() => {
     return (data ?? []).map(r => r.code);
   }
 
-  // Chama a Edge Function parse-stickers para extrair códigos de texto ou imagem via IA
+  // Chama a API da Anthropic diretamente para extrair códigos de texto ou imagem
   async function parseStickerCodes(payload) {
-    const { data, error } = await supabaseClient.functions.invoke('parse-stickers', { body: payload });
-    if (error) throw error;
-    if (data?.error) throw new Error(data.error);
-    return (data?.codes ?? []);
+    if (!ANTHROPIC_API_KEY) throw new Error('Chave da API não configurada (ANTHROPIC_API_KEY)');
+
+    const PROMPT_IMG =
+      'Esta imagem mostra códigos de figurinhas do álbum Panini Copa do Mundo FIFA 2026. ' +
+      'Extraia TODOS os códigos visíveis. Formato: 2–4 letras maiúsculas + 1–2 dígitos. ' +
+      'Exemplos: BRA5, ARG12, FWC3, CC14. ' +
+      'Responda APENAS com um JSON array em maiúsculas: ["BRA5","ARG12"]. Nenhum outro texto.';
+
+    const PROMPT_TXT = (t) =>
+      'Extraia os códigos de figurinhas da Copa 2026 do texto abaixo. ' +
+      'Formato: 2–4 letras + 1–2 dígitos (BRA5, ARG12, FWC3, CC14). ' +
+      'Aceite variações como "BRA: 5, 12" (→ BRA5, BRA12) ou "bra 5 arg3". ' +
+      'Responda APENAS com JSON array em maiúsculas: ["BRA5","ARG12"]. Nenhum outro texto.\n\n' +
+      `Texto:\n${t}`;
+
+    const userContent = payload.image
+      ? [
+          { type: 'image', source: { type: 'base64', media_type: payload.mediaType ?? 'image/jpeg', data: payload.image } },
+          { type: 'text', text: PROMPT_IMG },
+        ]
+      : PROMPT_TXT(payload.text ?? '');
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-allow-browser': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: userContent }],
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message ?? `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const raw  = data.content?.[0]?.text?.trim() ?? '[]';
+
+    let codes = [];
+    try { codes = JSON.parse(raw); }
+    catch { codes = [...raw.toUpperCase().matchAll(/\b([A-Z]{2,4}\d{1,2})\b/g)].map(m => m[1]); }
+
+    return codes.map(c => String(c).toUpperCase());
   }
 
   return {
