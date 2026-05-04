@@ -127,9 +127,9 @@ const db = (() => {
     return (data ?? []).map(r => r.code);
   }
 
-  // Chama a API da Anthropic diretamente para extrair códigos de texto ou imagem
+  // Chama a API do Gemini Flash para extrair códigos de texto ou imagem
   async function parseStickerCodes(payload) {
-    if (!ANTHROPIC_API_KEY) throw new Error('Chave da API não configurada (ANTHROPIC_API_KEY)');
+    if (!GEMINI_API_KEY) throw new Error('Chave da API não configurada (GEMINI_API_KEY)');
 
     const PROMPT_IMG =
       'Esta imagem mostra códigos de figurinhas do álbum Panini Copa do Mundo FIFA 2026. ' +
@@ -144,27 +144,21 @@ const db = (() => {
       'Responda APENAS com JSON array em maiúsculas: ["BRA5","ARG12"]. Nenhum outro texto.\n\n' +
       `Texto:\n${t}`;
 
-    const userContent = payload.image
+    const parts = payload.image
       ? [
-          { type: 'image', source: { type: 'base64', media_type: payload.mediaType ?? 'image/jpeg', data: payload.image } },
-          { type: 'text', text: PROMPT_IMG },
+          { inline_data: { mime_type: payload.mediaType ?? 'image/jpeg', data: payload.image } },
+          { text: PROMPT_IMG },
         ]
-      : PROMPT_TXT(payload.text ?? '');
+      : [{ text: PROMPT_TXT(payload.text ?? '') }];
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-allow-browser': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        messages: [{ role: 'user', content: userContent }],
-      }),
-    });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts }] }),
+      }
+    );
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -172,7 +166,7 @@ const db = (() => {
     }
 
     const data = await res.json();
-    const raw  = data.content?.[0]?.text?.trim() ?? '[]';
+    const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '[]';
 
     let codes = [];
     try { codes = JSON.parse(raw); }

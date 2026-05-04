@@ -34,12 +34,12 @@ jobs:
           // ─── Configuração (gerado pelo CI) ─────────────────────────────────
           const SUPABASE_URL       = '__SUPABASE_URL__';
           const SUPABASE_ANON_KEY  = '__SUPABASE_ANON_KEY__';
-          const ANTHROPIC_API_KEY  = '__ANTHROPIC_API_KEY__';
+          const GEMINI_API_KEY     = '__GEMINI_API_KEY__';
           const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
           JSEOF
           sed -i "s|__SUPABASE_URL__|${{ secrets.SUPABASE_URL }}|g"           js/config.js
           sed -i "s|__SUPABASE_ANON_KEY__|${{ secrets.SUPABASE_ANON_KEY }}|g" js/config.js
-          sed -i "s|__ANTHROPIC_API_KEY__|${{ secrets.ANTHROPIC_API_KEY }}|g" js/config.js
+          sed -i "s|__GEMINI_API_KEY__|${{ secrets.GEMINI_API_KEY }}|g"         js/config.js
           # Injeta hash do commit no HTML e no sw.js
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           sed -i "s|>dev<|>${SHORT_SHA}<|g" index.html
