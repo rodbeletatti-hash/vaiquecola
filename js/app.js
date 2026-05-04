@@ -10,8 +10,11 @@ const state = {
   undoStack:      [],
   realtimeCh:     null,
   cameraActive:   false,
-  pendingInvite:  null,
-  editMode:       false,
+  pendingInvite:   null,
+  editMode:        false,
+  compareRepeats:  null,   // Set<string> vindo de um link ?compare=TOKEN
+  compareAlbums:   null,   // lista de álbuns do usuário para seleção
+  compareMatches:  null,   // { matches: string[], albumName: string }
   tradeMode:      false,
   tradePending:   new Set(),
   completedFilter: 'all', // 'all' | 'hide' | 'only'
@@ -578,6 +581,7 @@ document.getElementById('btn-album-menu').addEventListener('click', () => {
     <h3>${escapeHtml(name)}</h3>
     <div class="menu-list">
       <button class="menu-item" onclick="shareAlbum()">Compartilhar álbum</button>
+      <button class="menu-item" onclick="generateCompareLink()">Gerar link de comparação</button>
       <button class="menu-item" onclick="exportStickers('missing')">Exportar faltantes</button>
       <button class="menu-item" onclick="exportStickers('all')">Exportar álbum completo</button>
       ${is_owner ? `
@@ -620,6 +624,173 @@ function copyInviteLink(url) {
     ()  => toast('Link copiado!', 'success'),
     ()  => toast('Não foi possível copiar', 'error')
   );
+}
+
+// ── Comparação de Figurinhas Repetidas ────────────────────────────────────────
+
+async function generateCompareLink() {
+  closeModal();
+  showLoading(true);
+  try {
+    const token = await db.createInvite(state.album.id, state.user.id);
+    const url   = `${window.location.origin}${window.location.pathname}?compare=${token}`;
+    const waMsg = encodeURIComponent(`Acesse o link para ver quais das minhas figurinhas repetidas você precisa: ${url}`);
+    showModal(`
+      <h3>Link de Comparação</h3>
+      <p class="share-hint">Envie para quem quiser saber quais figurinhas deste álbum completam o delas. O link expira em 7 dias.</p>
+      <div class="share-url">${escapeHtml(url)}</div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="copyInviteLink('${escapeHtml(url)}')">Copiar link</button>
+        <a class="btn-primary" href="https://wa.me/?text=${waMsg}" target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+      <button class="btn-text" onclick="closeModal()">Fechar</button>
+    `);
+  } catch {
+    toast('Erro ao gerar link', 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function handleCompare(token) {
+  showLoading(true);
+  try {
+    const codes = await db.readAlbumForCompare(token);
+    state.compareRepeats = new Set(codes);
+
+    const albums = await db.getAlbums(state.user.id);
+    state.compareAlbums  = albums;
+
+    if (!albums.length) {
+      showModal(`
+        <h3>Comparar Figurinhas</h3>
+        <p class="share-hint">Você precisa ter um álbum para comparar.<br>Crie um álbum primeiro!</p>
+        <button class="btn-primary" onclick="closeModal()">OK</button>
+      `);
+      return;
+    }
+
+    const total = state.compareRepeats.size;
+    const btns  = albums.map(a =>
+      `<button class="menu-item" onclick="doCompare('${a.id}')">${escapeHtml(a.name)}</button>`
+    ).join('');
+
+    showModal(`
+      <h3>Comparar Figurinhas</h3>
+      <p class="share-hint">${total} figurinha${total !== 1 ? 's' : ''} repetida${total !== 1 ? 's' : ''} disponível. Selecione seu álbum para ver quais te faltam:</p>
+      <div class="menu-list">${btns}</div>
+      <button class="btn-text" onclick="closeModal()">Cancelar</button>
+    `);
+  } catch {
+    toast('Link de comparação inválido ou expirado', 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function doCompare(albumId) {
+  const albumName = state.compareAlbums?.find(a => a.id === albumId)?.name ?? '';
+  showLoading(true);
+  try {
+    const rows    = await db.getStickers(albumId);
+    const owned   = new Set(rows.filter(r => r.owned).map(r => r.code));
+    const matches = CATALOG.flatMap(s => getSectionCodes(s))
+      .filter(c => state.compareRepeats.has(c) && !owned.has(c));
+
+    if (!matches.length) {
+      showModal(`
+        <h3>Sem combinações 😔</h3>
+        <p class="share-hint">Nenhuma figurinha repetida completa o álbum <strong>${escapeHtml(albumName)}</strong>.</p>
+        <button class="btn-primary" onclick="closeModal()">Fechar</button>
+      `);
+      return;
+    }
+
+    // Agrupa por seção
+    const grouped = {};
+    for (const code of matches) {
+      const sec = getSectionForCode(code);
+      if (!sec) continue;
+      if (!grouped[sec.id]) grouped[sec.id] = { sec, nums: [] };
+      grouped[sec.id].nums.push(code === '00' ? '00' : code.slice(sec.id.length));
+    }
+
+    const listHtml = Object.values(grouped).map(({ sec, nums }) =>
+      `<div class="cmp-row">
+        <span class="cmp-team">${sec.flag ?? ''} ${sec.id}</span>
+        <span class="cmp-nums">${nums.join(', ')}</span>
+      </div>`
+    ).join('');
+
+    state.compareMatches = { matches, albumName };
+
+    showModal(`
+      <h3>${matches.length} figurinha${matches.length !== 1 ? 's' : ''} combinam! 🎉</h3>
+      <p class="share-hint">Essas repetidas completam o álbum <strong>${escapeHtml(albumName)}</strong>:</p>
+      <div class="cmp-list">${listHtml}</div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal()">Fechar</button>
+        <button class="btn-primary" onclick="exportCompareList()">Exportar lista</button>
+      </div>
+    `);
+  } catch {
+    toast('Erro ao comparar álbuns', 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+function exportCompareList() {
+  const { matches, albumName } = state.compareMatches ?? {};
+  if (!matches?.length) return;
+
+  const title = `Figurinhas para repassar — ${albumName}`;
+
+  const grouped = {};
+  for (const code of matches) {
+    const sec = getSectionForCode(code);
+    if (!sec) continue;
+    if (!grouped[sec.id]) grouped[sec.id] = { sec, nums: [] };
+    grouped[sec.id].nums.push(code === '00' ? '00' : code.slice(sec.id.length));
+  }
+
+  const rows = Object.values(grouped).map(({ sec, nums }) =>
+    `<tr><td class="et">${sec.flag ?? ''} ${sec.id}</td><td class="en">${nums.join(', ')}</td></tr>`
+  ).join('');
+
+  const page = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${title}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,Helvetica,sans-serif;padding:16px;color:#111;max-width:600px;margin:0 auto}
+    h1{font-size:16px;margin-bottom:4px;font-weight:700}
+    .sub{font-size:10px;color:#666;margin-bottom:14px}
+    .print-btn{display:block;margin:0 auto 14px;padding:5px 18px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600}
+    @media print{.print-btn{display:none}@page{margin:12mm}}
+    table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid #ccc;padding:5px 8px;font-size:11px;text-align:left}
+    th{background:#f3f4f6;font-weight:700}
+    .et{width:90px;font-weight:700;white-space:nowrap}
+    tr:nth-child(even){background:#f9fafb}
+  </style>
+</head>
+<body>
+  <button class="print-btn" onclick="window.print()">Imprimir / Salvar PDF</button>
+  <h1>${title}</h1>
+  <p class="sub">${matches.length} figurinha${matches.length !== 1 ? 's' : ''} • Gerado em ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+  <table>
+    <thead><tr><th>Time</th><th>Figurinhas</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  if (win) { win.document.write(page); win.document.close(); }
+  else      { toast('Permita pop-ups para exportar', 'error'); }
 }
 
 function exportStickers(mode) {
@@ -917,8 +1088,22 @@ async function handleInvite(token) {
 // ── Inicialização ─────────────────────────────────────────────────────────────
 
 async function init() {
-  const params      = new URLSearchParams(window.location.search);
-  const inviteToken = params.get('invite');
+  const params       = new URLSearchParams(window.location.search);
+  const inviteToken  = params.get('invite');
+  const compareToken = params.get('compare');
+
+  // Preserva o token de comparação no sessionStorage para sobreviver ao login
+  if (compareToken) {
+    sessionStorage.setItem('pendingCompare', compareToken);
+    const u = new URL(window.location.href);
+    u.searchParams.delete('compare');
+    history.replaceState({}, '', u.toString());
+  }
+
+  const _runPendingCompare = async () => {
+    const token = sessionStorage.getItem('pendingCompare');
+    if (token) { sessionStorage.removeItem('pendingCompare'); await handleCompare(token); }
+  };
 
   // Escuta mudanças futuras (logout, refresh de token, etc.)
   auth.onAuthStateChange(async (user) => {
@@ -929,6 +1114,7 @@ async function init() {
       // Novo login (ex: magic link processado de forma assíncrona)
       await renderAlbums();
       showScreen('screen-home');
+      await _runPendingCompare();
     } else if (!user && wasLoggedIn) {
       // Logout
       showScreen('screen-auth');
@@ -947,6 +1133,7 @@ async function init() {
     if (inviteToken) await handleInvite(inviteToken);
     await renderAlbums();
     showScreen('screen-home');
+    await _runPendingCompare();
   }
 
   // Desregistra qualquer service worker antigo

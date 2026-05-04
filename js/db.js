@@ -121,10 +121,17 @@ const db = (() => {
     if (channel) supabaseClient.removeChannel(channel);
   }
 
+  async function readAlbumForCompare(token) {
+    const { data, error } = await supabaseClient.rpc('read_album_for_compare', { p_token: token });
+    if (error) throw error;
+    return (data ?? []).map(r => r.code);
+  }
+
   return {
     getAlbums, createAlbum, renameAlbum, deleteAlbum,
     createInvite, acceptInvite,
     getStickers, setSticker,
     subscribeToAlbum, unsubscribe,
+    readAlbumForCompare,
   };
 })();

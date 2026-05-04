@@ -580,6 +580,12 @@ a      { color: inherit; }
 .menu-item.danger { color: var(--danger); }
 
 .share-hint { font-size: .82rem; color: var(--text-muted); margin-bottom: 12px; }
+
+/* ── Comparação de repetidas ─────────────────────────────────────────────── */
+.cmp-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; max-height: 40vh; overflow-y: auto; }
+.cmp-row  { display: flex; align-items: baseline; gap: 8px; padding: 4px 6px; border-radius: 4px; background: var(--bg); }
+.cmp-team { font-size: .8rem; font-weight: 700; min-width: 54px; white-space: nowrap; }
+.cmp-nums { font-size: .82rem; color: var(--text-muted); }
 .share-url  {
   background: var(--bg);
   border: 1px solid var(--border);
