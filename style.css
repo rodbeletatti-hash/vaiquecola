@@ -383,8 +383,7 @@ a      { color: inherit; }
 #screen-album:not(.edit-mode) .sticker:active { transform: none; }
 
 /* No modo leitura esconde apenas os botões de ação, mantém a busca */
-#screen-album:not(.edit-mode) #btn-undo,
-#screen-album:not(.edit-mode) #btn-camera { display: none; }
+#screen-album:not(.edit-mode) #btn-undo { display: none; }
 
 /* Botão de alternância de modo */
 .btn-edit-mode {
@@ -443,105 +442,6 @@ a      { color: inherit; }
 #quick-input.input-has   { border-color: var(--primary); background: rgba(16,185,129,.15); color: var(--primary); }
 #quick-input.input-missing { border-color: var(--danger);  background: rgba(239,68,68,.15);  color: var(--danger); }
 #quick-input::placeholder, #repeats-search::placeholder { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-muted); }
-
-/* ─── Camera ───────────────────────────────────────────────────────────────── */
-.camera-wrap { position: relative; flex: 1; overflow: hidden; background: #000; display: flex; flex-direction: column; }
-
-#cam-video {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;
-}
-
-.cam-overlay {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  pointer-events: none;
-}
-
-.cam-frame {
-  width: 70%; max-width: 340px;
-  aspect-ratio: 2.5 / 1;
-  border: 3px solid var(--primary);
-  border-radius: 12px;
-  box-shadow: 0 0 0 9999px rgba(0,0,0,.5);
-}
-
-/* Resultado OCR */
-.cam-result {
-  position: absolute; inset: 0;
-  background: rgba(0,0,0,.75);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 20px;
-  z-index: 10;
-}
-.cam-result.hidden { display: none; }
-
-.cam-result-badge {
-  padding: 24px 40px;
-  border-radius: 16px;
-  text-align: center;
-}
-.cam-result-badge.cam-has     { background: var(--primary); }
-.cam-result-badge.cam-missing { background: var(--danger); }
-
-.cam-code        { display: block; font-size: 2.2rem; font-weight: 800; letter-spacing: .06em; }
-.cam-status-text { display: block; font-size: 1rem; font-weight: 700; margin-top: 4px; opacity: .9; }
-
-.cam-result-actions { display: flex; gap: 12px; }
-.btn-confirm {
-  padding: 12px 28px;
-  background: var(--primary); color: #fff;
-  border-radius: var(--radius); font-weight: 700; font-size: .95rem;
-}
-.btn-skip {
-  padding: 12px 28px;
-  background: var(--surface2); color: var(--text);
-  border-radius: var(--radius); font-weight: 600; font-size: .95rem;
-}
-
-.cam-bottom {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  padding: 14px 16px calc(14px + var(--safe-bottom));
-  background: linear-gradient(transparent, rgba(0,0,0,.85));
-  z-index: 5;
-}
-.cam-status { font-size: .85rem; color: rgba(255,255,255,.8); text-align: center; margin-bottom: 12px; }
-
-.cam-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-
-.cam-mode-toggle {
-  display: flex;
-  background: rgba(255,255,255,.15);
-  border-radius: 20px;
-  padding: 3px;
-  backdrop-filter: blur(4px);
-}
-.cam-mode-btn {
-  padding: 7px 14px;
-  border-radius: 16px;
-  font-size: .8rem; font-weight: 600;
-  color: rgba(255,255,255,.7);
-  transition: background .2s, color .2s;
-}
-.cam-mode-btn.active {
-  background: #fff;
-  color: #111827;
-}
-
-.btn-cam-secondary {
-  padding: 10px 16px;
-  background: rgba(255,255,255,.15);
-  border-radius: var(--radius);
-  font-size: .9rem;
-  backdrop-filter: blur(4px);
-}
-.btn-cam-capture {
-  padding: 12px 24px;
-  background: var(--primary); color: #fff;
-  border-radius: var(--radius); font-weight: 700; font-size: .95rem;
-}
 
 /* ─── Modal ────────────────────────────────────────────────────────────────── */
 .modal-bg {

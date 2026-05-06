@@ -162,47 +162,8 @@
         spellcheck="false"
         inputmode="text"
       >
-      <button id="btn-camera" class="btn-icon" title="Câmera">📷</button>
     </div>
 
-  </div>
-
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       Tela de Câmera
-  ════════════════════════════════════════════════════════════════════════ -->
-  <div id="screen-camera" class="screen">
-    <div class="camera-wrap">
-
-      <video id="cam-video" autoplay playsinline muted></video>
-
-      <!-- Overlay com guia de enquadramento -->
-      <div class="cam-overlay">
-        <div class="cam-frame"></div>
-      </div>
-
-      <!-- Resultado do OCR -->
-      <div id="cam-result" class="cam-result hidden">
-        <div id="cam-result-badge" class="cam-result-badge"></div>
-        <div id="cam-result-actions" class="cam-result-actions">
-          <button id="btn-cam-confirm" class="btn-confirm">Confirmar</button>
-          <button id="btn-cam-skip"    class="btn-skip">Pular</button>
-        </div>
-      </div>
-
-      <!-- Status e controles -->
-      <div class="cam-bottom">
-        <p id="cam-status" class="cam-status">Aponte para o código da figurinha</p>
-        <div class="cam-controls">
-          <button id="btn-cam-back"    class="btn-cam-secondary">← Voltar</button>
-          <div class="cam-mode-toggle">
-            <button id="btn-mode-verify" class="cam-mode-btn active">Verificar</button>
-            <button id="btn-mode-mark"   class="cam-mode-btn">Marcar</button>
-          </div>
-          <button id="btn-cam-capture" class="btn-cam-capture">Ler agora</button>
-        </div>
-      </div>
-
-    </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
@@ -229,12 +190,10 @@
 
   <!-- ── Scripts ──────────────────────────────────────────────────────────── -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="js/config.js?v=__BUILD__"></script>
   <script src="js/catalog.js?v=__BUILD__"></script>
   <script src="js/auth.js?v=__BUILD__"></script>
   <script src="js/db.js?v=__BUILD__"></script>
-  <script src="js/camera.js?v=__BUILD__"></script>
   <script src="js/app.js?v=__BUILD__"></script>
 
 </body>

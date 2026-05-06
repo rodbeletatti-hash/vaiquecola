@@ -9,7 +9,6 @@ const state = {
   search:         '',
   undoStack:      [],
   realtimeCh:     null,
-  cameraActive:   false,
   pendingInvite:   null,
   editMode:        false,
   compareRepeats:  null,   // Set<string> vindo de um link ?compare=TOKEN
@@ -1131,109 +1130,6 @@ document.getElementById('btn-back').addEventListener('click', () => {
 document.getElementById('modal-bg').addEventListener('click', (e) => {
   if (e.target === document.getElementById('modal-bg')) closeModal();
 });
-
-// ── Câmera ────────────────────────────────────────────────────────────────────
-
-const camVideo   = document.getElementById('cam-video');
-const camResult  = document.getElementById('cam-result');
-const camBadge   = document.getElementById('cam-result-badge');
-const camActions = document.getElementById('cam-result-actions');
-const camStatus  = document.getElementById('cam-status');
-
-// Modo: 'verify' (só mostra verde/vermelho) | 'mark' (pede confirmação)
-let camMode = 'verify';
-let camResultTimer = null;
-
-document.getElementById('btn-mode-verify').addEventListener('click', () => setCamMode('verify'));
-document.getElementById('btn-mode-mark').addEventListener('click',   () => setCamMode('mark'));
-
-function setCamMode(mode) {
-  camMode = mode;
-  document.getElementById('btn-mode-verify').classList.toggle('active', mode === 'verify');
-  document.getElementById('btn-mode-mark').classList.toggle('active',   mode === 'mark');
-}
-
-document.getElementById('btn-camera').addEventListener('click', openCamera);
-document.getElementById('btn-cam-back').addEventListener('click', closeCamera);
-
-document.getElementById('btn-cam-capture').addEventListener('click', async () => {
-  camStatus.textContent = 'Lendo...';
-  const code = await camera.captureOnce(camVideo);
-  if (code) {
-    showCameraResult(code);
-  } else {
-    camStatus.textContent = 'Não encontrado. Tente novamente.';
-  }
-});
-
-document.getElementById('btn-cam-confirm').addEventListener('click', async () => {
-  const code = camBadge.dataset.code;
-  if (code) await toggleSticker(code);
-  hideCameraResult();
-  camera.resumeScan();
-  camStatus.textContent = 'Aponte para o código da figurinha';
-});
-
-document.getElementById('btn-cam-skip').addEventListener('click', () => {
-  hideCameraResult();
-  camera.resumeScan();
-  camStatus.textContent = 'Aponte para o código da figurinha';
-});
-
-async function openCamera() {
-  showScreen('screen-camera');
-  state.cameraActive = true;
-  camStatus.textContent = 'Iniciando câmera...';
-  try {
-    await camera.start(camVideo);
-    camStatus.textContent = 'Aponte para o código da figurinha';
-    camera.startScan(camVideo, (code) => {
-      showCameraResult(code);
-    });
-  } catch (err) {
-    camStatus.textContent = 'Câmera não disponível. Use o input manual.';
-    console.error(err);
-  }
-}
-
-function closeCamera() {
-  clearTimeout(camResultTimer);
-  camera.stop();
-  state.cameraActive = false;
-  hideCameraResult();
-  showScreen('screen-album');
-}
-
-function showCameraResult(code) {
-  const owned = state.owned.has(code);
-  camBadge.dataset.code = code;
-  camBadge.className    = `cam-result-badge ${owned ? 'cam-has' : 'cam-missing'}`;
-  camBadge.innerHTML    = `
-    <span class="cam-code">${code}</span>
-    <span class="cam-status-text">${owned ? 'JÁ TENHO!' : 'FALTANDO!'}</span>
-  `;
-  camResult.classList.remove('hidden');
-  camStatus.textContent = owned ? 'Você já tem esta figurinha' : 'Você não tem esta figurinha';
-
-  if (camMode === 'verify') {
-    // Modo verificar: esconde botões e retoma scan após 2s
-    camActions.classList.add('hidden');
-    clearTimeout(camResultTimer);
-    camResultTimer = setTimeout(() => {
-      hideCameraResult();
-      camera.resumeScan();
-      camStatus.textContent = 'Aponte para o código da figurinha';
-    }, 2000);
-  } else {
-    // Modo marcar: mostra botões de confirmação
-    camActions.classList.remove('hidden');
-  }
-}
-
-function hideCameraResult() {
-  camResult.classList.add('hidden');
-  camBadge.dataset.code = '';
-}
 
 // ── Convite (URL ?invite=TOKEN) ───────────────────────────────────────────────
 
