@@ -337,7 +337,10 @@ function renderStickers() {
             ${visible.map(code => {
               const cls = state.owned.has(code) ? 'owned'
                         : state.tradePending.has(code) ? 'trade' : '';
-              return `<button class="sticker ${cls}" data-code="${code}" onclick="toggleSticker('${code}')">${code}</button>`;
+              const label = search && code.startsWith(search)
+                ? `<mark>${escapeHtml(code.slice(0, search.length))}</mark>${escapeHtml(code.slice(search.length))}`
+                : escapeHtml(code);
+              return `<button class="sticker ${cls}" data-code="${code}" onclick="toggleSticker('${code}')">${label}</button>`;
             }).join('')}
           </div>
         </div>

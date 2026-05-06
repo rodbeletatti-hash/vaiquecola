@@ -328,6 +328,17 @@ a      { color: inherit; }
 }
 .sticker:active { transform: scale(.88); }
 .sticker.flash  { animation: sticker-flash .35s ease; }
+.sticker mark {
+  background: transparent;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 900;
+}
+.sticker.owned mark, .sticker.trade mark {
+  color: #fff;
+  text-decoration-color: rgba(255,255,255,.6);
+}
 
 /* ─── Modo Troca ───────────────────────────────────────────────────────────── */
 .trade-bar {
